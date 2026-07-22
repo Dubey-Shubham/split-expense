@@ -8,6 +8,27 @@ Welcome! This file tracks design decisions, explanations, and answers to your qu
 1. [Next.js layouts vs page.tsx files](#q1-nextjs-layouts-vs-pagetsx-files)
 2. [Metadata in layout.tsx and page heads](#q2-metadata-in-layouttsx-and-page-heads)
 3. [Route Groups (app) and (marketing)](#q3-route-groups-app-and-marketing)
+4. [PostgreSQL vs. MongoDB & What is NeonDB](#q4-postgresql-vs-mongodb--what-is-neondb)
+5. [How to Setup Neon DB + Drizzle in Future Projects](#q5-how-to-setup-neon-db--drizzle-in-future-projects)
+6. [How to View DB Tables in the Browser](#q6-how-to-view-db-tables-in-the-browser)
+
+---
+
+## NPM Commands Reference
+
+Here are the key commands configured in [package.json](file:///c:/Projects/split-expense/package.json) for this project:
+
+### Development & Build
+* **`npm run dev`**: Starts the Next.js local development server (accessible at `http://localhost:3000`).
+* **`npm run build`**: Compiles the Next.js application for production.
+* **`npm run start`**: Runs the compiled Next.js production server.
+* **`npm run lint`**: Runs ESLint checks on your code to find syntax, TypeScript, and React formatting errors.
+
+### Database & Drizzle ORM
+* **`npm run db:generate`**: Compiles your TypeScript schemas in `src/lib/db/schema.ts` and outputs standard SQL migration files under `src/lib/db/migrations/`.
+* **`npm run db:migrate`**: Executes generated SQL migration files against your live Neon database to synchronize structural table changes.
+* **`npm run db:push`**: Directly pushes your TypeScript `schema.ts` changes to your live Neon database instantly, without generating migration SQL logs (best for fast local iterations).
+* **`npm run db:studio`**: Launches a spreadsheet-like browser interface (at `https://local.drizzle.studio`) that lets you view, search, and edit database rows and tables.
 
 ---
 
@@ -62,5 +83,153 @@ Next.js uses Route Groups for two main reasons:
    This is the primary architectural reason. Route Groups allow us to apply different layouts to different sets of pages:
    - **The `(app)` layout zone**: Pages like home, groups, and budgets need the global app shell (with the `TopNav` header and the mobile `BottomNav` menu). Placing them in `(app)` wraps them under the `(app)/layout.tsx` that contains those navbars.
    - **The `(marketing)` layout zone**: Pages like login and signup are public and should not show the dashboard navbars. Placing them inside `(marketing)` separates them from the app shell, inheriting only the root `layout.tsx` wrapper.
+
+### Q4: PostgreSQL vs. MongoDB & What is NeonDB
+
+**Question:**
+I have only used MongoDB Atlas in the past. What is PostgreSQL, and why did we choose NeonDB? What is NeonDB?
+
+**Answer:**
+Coming from MongoDB Atlas, you will find PostgreSQL (Postgres) very powerful, but it handles data with a different philosophy.
+
+#### 1. PostgreSQL vs. MongoDB
+
+* **Data Model (Relational vs. Document)**:
+  * **MongoDB (NoSQL)**: Stores data in flexible, JSON-like document structures. You can put any fields in any document without defining them beforehand.
+  * **PostgreSQL (SQL)**: A relational database. Data is stored in rigid **tables** with columns and rows. You must define a **schema** (table names, column types like text, integer, timestamp) beforehand. Drizzle ORM acts as the bridge to define these schemas in TypeScript.
+* **Relations & Integrity (Links vs. Joins)**:
+  * In MongoDB, linking two items (like an expense and the user who paid it) is done using `ObjectId` references, but MongoDB doesn't strictly check if the target exists.
+  * In Postgres, we use **Foreign Keys** (`references`). The database itself enforces relational integrity. For example, you cannot insert an expense for a `userId` that doesn't exist in the `users` table. 
+  * Postgres excels at **JOINS**, letting you write high-performance queries that merge data across tables (e.g. matching an expense split list with user profiles) in a single request.
+* **Transactions (ACID)**:
+  * Postgres is highly optimized for strict financial transactions. If a user logs a group expense, and we must create 1 expense record + 4 split entries, Postgres guarantees that either **all of them succeed** or **all of them roll back** (no partial database states).
+
+#### 2. What is NeonDB?
+
+Think of **NeonDB (Neon)** as the **MongoDB Atlas equivalent for PostgreSQL**. It is a cloud Postgres hosting platform.
+
+We chose it for this project because of its unique serverless design:
+
+* **Compute & Storage Separation (Autoscaling)**:
+  Unlike traditional databases that run 24/7 (costing money), Neon separates storage from compute. If nobody is visiting your app, Neon automatically spins down to 0 compute power (free). As soon as a request hits your site, it spins up in under a second.
+* **Database Branching**:
+  Just like Git branches, Neon allows you to create instant copies of your database schema and data in seconds. You can create a `development` branch to test Drizzle schema migrations safely, without breaking your main database.
+* **Serverless Connection Pooling**:
+  Next.js Server Actions run in serverless functions (which spin up and down constantly). Standard Postgres connections require persistent TCP links, which break when hundreds of functions spin up. Neon includes a built-in serverless driver (WebSocket connection pooling) which allows the serverless app to connect instantly and scale safely.
+
+### Q5: How to Setup Neon DB + Drizzle in Future Projects
+
+**Question:**
+How can I set up Neon DB and connect it to a Next.js app in a way that I can reuse for future projects?
+
+**Answer:**
+Here is a step-by-step boilerplate guide you can reuse to set up Neon Postgres and Drizzle ORM in any new Next.js project.
+
+#### Step 1: Create a Database on Neon
+1. Go to [neon.tech](https://neon.tech) and sign up for a free account.
+2. Create a new project (select a region close to your users/hosting, e.g. AWS ap-south-1).
+3. Copy the **Connection String** from your dashboard. It looks like:
+   `postgresql://alex:passwd@ep-cool-glow-a123.ap-south-1.aws.neon.tech/neondb?sslmode=require`
+
+#### Step 2: Configure Environment Variables
+Create a `.env.local` (for development) or `.env` file at the root of your Next.js project and paste your connection string:
+```env
+DATABASE_URL="postgresql://alex:passwd@ep-cool-glow-a123.ap-south-1.aws.neon.tech/neondb?sslmode=require"
+```
+
+#### Step 3: Install Required Packages
+Run the following command in your terminal to install the Drizzle ORM runtime, Neon's serverless client, and Drizzle Kit development tools:
+```bash
+npm install drizzle-orm @neondatabase/serverless
+npm install -D drizzle-kit
+```
+
+#### Step 4: Configure Drizzle Kit
+Create a `drizzle.config.ts` file in the root folder of your project:
+```typescript
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  dialect: "postgresql",
+  schema: "./src/lib/db/schema.ts", // where you define your TypeScript tables
+  out: "./src/lib/db/migrations",    // where SQL migrations will be generated
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+});
+```
+
+#### Step 5: Setup the Connection Client
+Create a file at `src/lib/db/db.ts` to export your database connector. This setup ensures that in development mode, hot-reloading does not exhaust your connection pool limits:
+```typescript
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool } from "@neondatabase/serverless";
+
+const connectionString = process.env.DATABASE_URL || "";
+
+const globalForDb = globalThis as unknown as {
+  pool: Pool | undefined;
+};
+
+const pool = globalForDb.pool ?? new Pool({ connectionString });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForDb.pool = pool;
+}
+
+export const db = drizzle({ client: pool });
+```
+
+#### Step 6: Create your Schemas
+Create your tables at `src/lib/db/schema.ts` using Drizzle columns:
+```typescript
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+```
+
+#### Step 7: Configure Migration Scripts
+Add these scripts inside your `package.json`'s `"scripts"` block:
+```json
+"db:generate": "drizzle-kit generate",
+"db:push": "drizzle-kit push",
+"db:studio": "drizzle-kit studio"
+```
+
+* **`npm run db:generate`**: Inspects your TypeScript schema files and outputs standard `.sql` migration files.
+* **`npm run db:push`**: Directly pushes your TypeScript schema updates into your live Neon cloud database (perfect for quick iterations without tracking migrations).
+* **`npm run db:studio`**: Opens a visual browser dashboard to view and edit your database tables and data.
+
+### Q6: How to View DB Tables in the Browser
+
+**Question:**
+How can I check the current tables and rows in our database right now in the browser?
+
+**Answer:**
+There are two main ways to explore and edit your database tables directly inside a web browser:
+
+#### Method A: Drizzle Studio (Local & Universal)
+Drizzle includes a built-in GUI explorer called **Drizzle Studio** that reads your local schemas and links to your database.
+1. Run this command in your project terminal:
+   ```bash
+   npm run db:studio
+   ```
+2. Drizzle Kit will read your `.env` variables and launch a local web service at:
+   `https://local.drizzle.studio` (or `http://localhost:1234`)
+3. Open that link in your browser. You will see a spreadsheet-like interface where you can view tables, add rows, search records, and edit values visually.
+
+#### Method B: Neon Console Dashboard (Cloud-Specific)
+Because Neon is a cloud database hosting provider, it has a built-in browser-based GUI.
+1. Log into your dashboard at [neon.tech](https://neon.tech).
+2. Click on your active project, and navigate to **Tables** or **SQL Editor** in the left-hand sidebar:
+   - **Tables View**: Displays all tables, column metadata, schemas, and lets you browse row records.
+   - **SQL Editor**: Lets you write and run SQL queries (like `SELECT * FROM users;`) directly in your browser.
+
+
+
 
 

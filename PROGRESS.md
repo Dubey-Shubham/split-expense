@@ -38,3 +38,10 @@ This document maintains the context of our development steps for the Shared Expe
 - **[Completed]**: Designed a premium, dark-themed, glassmorphic Sign-Up UI page (`src/app/(marketing)/signup/page.tsx`) requesting First Name, Last Name, Email, and Password with local storage registration simulation, integrated with React Hook Form and Zod schema validation.
 - **[Completed]**: Designed an aligned Login UI page (`src/app/(marketing)/login/page.tsx`) that verifies user credentials against local storage accounts using React Hook Form and Zod schemas, routing the user into the main app dashboard on success.
 
+**Step 4: Database & Drizzle ORM Setup**
+- **[Completed]**: Installed Drizzle ORM and Neon Postgres driver dependencies (`drizzle-orm`, `@neondatabase/serverless`, `drizzle-kit`).
+- **[Completed]**: Created `drizzle.config.ts` configuration file mapping schemas to `src/lib/db/schema.ts` and output migrations to `src/lib/db/migrations`.
+- **[Completed]**: Programmed the DB connection client at `src/lib/db/db.ts` utilizing pooled socket connections safe for local and serverless execution environments.
+- **[Completed]**: Declared the initial `users` relational table schema at `src/lib/db/schema.ts` representing user account details (First Name, Last Name, Email, Password Hash, UPI ID).
+- **[Completed]**: Ran Drizzle Kit migrations generator successfully, creating the initial database SQL schema file.
+
