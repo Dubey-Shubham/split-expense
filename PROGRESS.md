@@ -30,3 +30,11 @@ This document maintains the context of our development steps for the Shared Expe
 **Step 2: Base UI and Layout Setup**
 - **[Completed]**: Initialized `shadcn/ui` with default configuration.
 - **[Completed]**: Designed and implemented the mobile-first base layout (`layout.tsx` max-width container, bottom navigation bar, and premium welcome page).
+
+### Phase 1: Auth & User Onboarding (UI Setup)
+
+**Step 3: Route Restructuring & Authentication Screens UI**
+- **[Completed]**: Restructured routes using Next.js Route Groups into `(app)` (authenticated layout with `TopNav` and `BottomNav` navigation bars) and `(marketing)` (public/auth shell without global navigation).
+- **[Completed]**: Designed a premium, dark-themed, glassmorphic Sign-Up UI page (`src/app/(marketing)/signup/page.tsx`) requesting First Name, Last Name, Email, and Password with local storage registration simulation, integrated with React Hook Form and Zod schema validation.
+- **[Completed]**: Designed an aligned Login UI page (`src/app/(marketing)/login/page.tsx`) that verifies user credentials against local storage accounts using React Hook Form and Zod schemas, routing the user into the main app dashboard on success.
+
