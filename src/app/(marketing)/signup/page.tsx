@@ -7,14 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Wallet, User, Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
-
-interface Account {
-  firstName: string;
-  lastName: string;
-  email: string;
-  upiId?: string;
-  password?: string;
-}
+import { signUpAction } from "@/app/actions/auth";
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -56,67 +49,58 @@ export default function SignupPage() {
     },
   });
 
-  const onSubmit = (data: SignupFormValues) => {
+  const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
 
-    // Simulate network latency
-    setTimeout(() => {
-      try {
-        const existingAccountsRaw = localStorage.getItem("split_expense_accounts");
-        const accounts: Account[] = existingAccountsRaw ? JSON.parse(existingAccountsRaw) : [];
+    try {
+      const res = await signUpAction({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+      });
 
-        // Check if email already registered
-        const emailExists = accounts.some(
-          (acc: Account) => acc.email.toLowerCase() === data.email.toLowerCase()
-        );
-        if (emailExists) {
-          setError("email", { message: "Email is already registered" });
-          setIsLoading(false);
-          return;
+      if (!res.success) {
+        if (res.error?.includes("Email")) {
+          setError("email", { message: res.error });
+        } else {
+          setError("root", { message: res.error || "Failed to create account" });
         }
-
-        const newAccount = {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          upiId: "",
-          password: data.password,
-        };
-
-        accounts.push(newAccount);
-        localStorage.setItem("split_expense_accounts", JSON.stringify(accounts));
-        
-        // Save registered email to pre-fill login
-        localStorage.setItem("split_expense_last_registered_email", data.email);
-
-        setIsSuccess(true);
         setIsLoading(false);
-
-        // Redirect to login page after short delay
-        setTimeout(() => {
-          router.push("/login");
-        }, 1500);
-      } catch (err) {
-        console.error(err);
-        setError("root", { message: "An unexpected error occurred. Please try again." });
-        setIsLoading(false);
+        return;
       }
-    }, 1200);
+
+      // Save email for pre-fill logic if needed
+      localStorage.setItem("split_expense_last_registered_email", data.email);
+
+      setIsSuccess(true);
+      setIsLoading(false);
+
+      // Redirect to main landing/dashboard page after short delay
+      setTimeout(() => {
+        router.push("/");
+        router.refresh();
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      setError("root", { message: "An unexpected error occurred. Please try again." });
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="relative min-h-[100dvh] flex flex-col items-center justify-center bg-background overflow-hidden py-8 md:py-16">
-      {/* Decorative ambient glowing backdrops */}
+
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-7xl mx-auto px-4 md:px-6 z-10 flex flex-col items-center justify-center flex-1">
         <div className="w-full max-w-lg space-y-6">
-          {/* Back Button */}
+
           <div className="flex justify-start">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => router.push("/")}
               className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1.5"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -144,7 +128,7 @@ export default function SignupPage() {
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-foreground">Registration Successful!</h3>
-                  <p className="text-sm text-muted-foreground">Taking you to the login page...</p>
+                  <p className="text-sm text-muted-foreground">Logging you in and taking you home...</p>
                 </div>
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
@@ -165,13 +149,12 @@ export default function SignupPage() {
                       <User className="absolute left-3 top-3.5 h-4.5 w-4.5 text-slate-500 group-focus-within:text-primary transition-colors" />
                       <input
                         type="text"
-                        placeholder="John"
+                        placeholder="Hardik"
                         {...register("firstName")}
-                        className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${
-                          errors.firstName
-                            ? "border-destructive focus:ring-1 focus:ring-destructive"
-                            : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
-                        }`}
+                        className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${errors.firstName
+                          ? "border-destructive focus:ring-1 focus:ring-destructive"
+                          : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
+                          }`}
                       />
                     </div>
                     {errors.firstName && <p className="text-sm text-destructive">{errors.firstName.message}</p>}
@@ -183,13 +166,12 @@ export default function SignupPage() {
                       <User className="absolute left-3 top-3.5 h-4.5 w-4.5 text-slate-500 group-focus-within:text-primary transition-colors" />
                       <input
                         type="text"
-                        placeholder="Doe"
+                        placeholder="Jain"
                         {...register("lastName")}
-                        className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${
-                          errors.lastName
-                            ? "border-destructive focus:ring-1 focus:ring-destructive"
-                            : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
-                        }`}
+                        className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${errors.lastName
+                          ? "border-destructive focus:ring-1 focus:ring-destructive"
+                          : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
+                          }`}
                       />
                     </div>
                     {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
@@ -203,13 +185,12 @@ export default function SignupPage() {
                     <Mail className="absolute left-3 top-3.5 h-4.5 w-4.5 text-slate-500 group-focus-within:text-primary transition-colors" />
                     <input
                       type="email"
-                      placeholder="john@example.com"
+                      placeholder="hardikjain@example.com"
                       {...register("email")}
-                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${
-                        errors.email
-                          ? "border-destructive focus:ring-1 focus:ring-destructive"
-                          : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
-                      }`}
+                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${errors.email
+                        ? "border-destructive focus:ring-1 focus:ring-destructive"
+                        : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
+                        }`}
                     />
                   </div>
                   {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
@@ -224,11 +205,10 @@ export default function SignupPage() {
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       {...register("password")}
-                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-10 text-sm outline-none transition-all ${
-                        errors.password
-                          ? "border-destructive focus:ring-1 focus:ring-destructive"
-                          : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
-                      }`}
+                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-10 text-sm outline-none transition-all ${errors.password
+                        ? "border-destructive focus:ring-1 focus:ring-destructive"
+                        : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
+                        }`}
                     />
                     <button
                       type="button"
@@ -250,11 +230,10 @@ export default function SignupPage() {
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       {...register("confirmPassword")}
-                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-10 text-sm outline-none transition-all ${
-                        errors.confirmPassword
-                          ? "border-destructive focus:ring-1 focus:ring-destructive"
-                          : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
-                      }`}
+                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-10 text-sm outline-none transition-all ${errors.confirmPassword
+                        ? "border-destructive focus:ring-1 focus:ring-destructive"
+                        : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
+                        }`}
                     />
                   </div>
                   {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
@@ -282,7 +261,6 @@ export default function SignupPage() {
             )}
           </div>
 
-          {/* Redirect toggle */}
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link href="/login" className="font-semibold text-foreground hover:underline">

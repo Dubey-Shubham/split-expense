@@ -7,14 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Wallet, Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
-
-interface Account {
-  firstName: string;
-  lastName: string;
-  email: string;
-  upiId: string;
-  password?: string;
-}
+import { loginAction } from "@/app/actions/auth";
 
 const loginSchema = z.object({
   email: z
@@ -62,49 +55,38 @@ export default function LoginPage() {
     }
   }, [setValue]);
 
-  const onSubmit = (data: LoginFormValues) => {
+  const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
 
-    // Simulate network delay
-    setTimeout(() => {
-      try {
-        const existingAccountsRaw = localStorage.getItem("split_expense_accounts");
-        const accounts: Account[] = existingAccountsRaw ? JSON.parse(existingAccountsRaw) : [];
+    try {
+      const res = await loginAction({
+        email: data.email,
+        password: data.password,
+      });
 
-        // Check if user exists and password matches
-        const user = accounts.find(
-          (acc: Account) => 
-            acc.email.toLowerCase() === data.email.toLowerCase() && 
-            acc.password === data.password
-        );
-
-        if (!user) {
-          setError("root", { message: "Invalid email address or password" });
-          setIsLoading(false);
-          return;
-        }
-
-        // Write session token / current user
-        localStorage.setItem("split_expense_current_user", JSON.stringify(user));
-
-        setIsSuccess(true);
+      if (!res.success) {
+        setError("root", { message: res.error || "Invalid email address or password" });
         setIsLoading(false);
-
-        // Redirect to main layout dashboard page
-        setTimeout(() => {
-          router.push("/");
-        }, 1200);
-      } catch (err) {
-        console.error(err);
-        setError("root", { message: "An error occurred during verification. Please try again." });
-        setIsLoading(false);
+        return;
       }
-    }, 1000);
+
+      setIsSuccess(true);
+      setIsLoading(false);
+
+      // Redirect to main layout page
+      setTimeout(() => {
+        router.push("/");
+        router.refresh();
+      }, 1200);
+    } catch (err) {
+      console.error(err);
+      setError("root", { message: "An error occurred during verification. Please try again." });
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="relative min-h-[100dvh] flex flex-col items-center justify-center bg-background overflow-hidden py-8 md:py-16">
-      {/* Decorative ambient glowing backdrops */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 
@@ -114,7 +96,7 @@ export default function LoginPage() {
           <div className="flex justify-start">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => router.push("/")}
               className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-1.5"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -155,26 +137,23 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {/* Email Address */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-foreground">Email Address</label>
                   <div className="relative group">
                     <Mail className="absolute left-3 top-3.5 h-4.5 w-4.5 text-slate-500 group-focus-within:text-primary transition-colors" />
                     <input
                       type="email"
-                      placeholder="john@example.com"
+                      placeholder="hardik@example.com"
                       {...register("email")}
-                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${
-                        errors.email
-                          ? "border-destructive focus:ring-1 focus:ring-destructive"
-                          : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
-                      }`}
+                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all ${errors.email
+                        ? "border-destructive focus:ring-1 focus:ring-destructive"
+                        : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
+                        }`}
                     />
                   </div>
                   {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                 </div>
 
-                {/* Password */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center gap-4">
                     <label className="text-sm font-semibold text-foreground">Password</label>
@@ -188,11 +167,10 @@ export default function LoginPage() {
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       {...register("password")}
-                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-10 text-sm outline-none transition-all ${
-                        errors.password
-                          ? "border-destructive focus:ring-1 focus:ring-destructive"
-                          : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
-                      }`}
+                      className={`w-full bg-background border text-foreground rounded-xl py-2.5 pl-10 pr-10 text-sm outline-none transition-all ${errors.password
+                        ? "border-destructive focus:ring-1 focus:ring-destructive"
+                        : "border-border focus:border-primary focus:ring-1 focus:ring-primary/20"
+                        }`}
                     />
                     <button
                       type="button"
@@ -205,7 +183,6 @@ export default function LoginPage() {
                   {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
                 </div>
 
-                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -227,7 +204,6 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Redirect toggle */}
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account yet?{" "}
             <Link href="/signup" className="font-semibold text-foreground hover:underline">

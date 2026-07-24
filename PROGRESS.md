@@ -45,3 +45,15 @@ This document maintains the context of our development steps for the Shared Expe
 - **[Completed]**: Declared the initial `users` relational table schema at `src/lib/db/schema.ts` representing user account details (First Name, Last Name, Email, Password Hash, UPI ID).
 - **[Completed]**: Ran Drizzle Kit migrations generator successfully, creating the initial database SQL schema file.
 
+**Step 5: Database-Connected Signup, Login, and Auth Navigation**
+- **[Completed]**: Written Server Actions for authentication (`signUpAction`, `loginAction`, `logoutAction`, `getCurrentUserAction`) in `src/app/actions/auth.ts` containing secure Node-native PBKDF2 password hashing.
+- **[Completed]**: Replaced mocked local-storage logins/signups with live cloud database reads and writes.
+- **[Completed]**: Programmed user-session cookies (`session_user`) that auto-propagate to React Server Components.
+- **[Completed]**: Upgraded route layout checks (`src/app/(app)/layout.tsx`) to pass active login states down to client views.
+- **[Completed]**: Configured `TopNav` to hide dashboard routing tabs and show clean "Log In" / "Sign Up" pills for guests, while exposing profile and logout triggers to members.
+- **[Completed]**: Configured `BottomNav` to hide entirely on mobile for logged-out guests.
+- **[Completed]**: Redesigned the root Home dashboard (`src/app/(app)/page.tsx`) to render a high-converting, dark-themed, glassmorphic marketing landing page listing features (Personal Budgets, Shared Groups, UPI, Real-time Chat) for unauthenticated visitors, while loading a private dashboard welcoming authenticated users.
+- **[Completed]**: Added a global routing proxy (`src/proxy.ts`) to intercept `/login` and `/signup` requests, redirecting authenticated users (possessing active session cookies) back to the home page `/`.
+
+
+

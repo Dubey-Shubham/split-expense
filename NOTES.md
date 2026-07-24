@@ -11,6 +11,9 @@ Welcome! This file tracks design decisions, explanations, and answers to your qu
 4. [PostgreSQL vs. MongoDB & What is NeonDB](#q4-postgresql-vs-mongodb--what-is-neondb)
 5. [How to Setup Neon DB + Drizzle in Future Projects](#q5-how-to-setup-neon-db--drizzle-in-future-projects)
 6. [How to View DB Tables in the Browser](#q6-how-to-view-db-tables-in-the-browser)
+7. [Server Actions vs. Route Handlers](#q7-server-actions-vs-route-handlers)
+8. [The Next.js 16 "proxy.ts" File Convention](#q8-the-nextjs-16-proxyts-file-convention)
+9. [Cookie-Based Sessions vs. JWT Access/Refresh Tokens](#q9-cookie-based-sessions-vs-jwt-accessrefresh-tokens)
 
 ---
 
@@ -227,9 +230,123 @@ Because Neon is a cloud database hosting provider, it has a built-in browser-bas
 1. Log into your dashboard at [neon.tech](https://neon.tech).
 2. Click on your active project, and navigate to **Tables** or **SQL Editor** in the left-hand sidebar:
    - **Tables View**: Displays all tables, column metadata, schemas, and lets you browse row records.
-   - **SQL Editor**: Lets you write and run SQL queries (like `SELECT * FROM users;`) directly in your browser.
+    - **SQL Editor**: Lets you write and run SQL queries (like `SELECT * FROM users;`) directly in your browser.
+
+### Q7: Server Actions vs. Route Handlers
+
+**Question:**
+Are the functions in `auth.ts` Server Actions? What are Server Actions, how do you create them, and how are they different from Route Handlers?
+
+**Answer:**
+Yes, the functions in `auth.ts` (`signUpAction`, `loginAction`, `logoutAction`, etc.) are indeed **Server Actions**.
+
+Here is a breakdown of what Server Actions are, how they work, and how they compare to Route Handlers.
+
+#### 1. What are Server Actions?
+Server Actions are asynchronous functions that run strictly on the server but can be invoked directly from Client Components (like forms, buttons, or custom event handlers) as if they were standard client-side JavaScript functions.
+
+Under the hood, Next.js automatically sets up a secure POST request to communicate with the server. This means you do not have to write custom client-side fetch requests (`fetch('/api/something')`) or build JSON controllers to save form inputs to your database.
+
+#### 2. How to Create and Use Them
+There are two ways to declare Server Actions:
+
+* **File-Level (Recommended for reusable actions)**:
+  Place `"use server";` at the very top of a file. Every function exported from this file becomes a Server Action.
+  ```typescript
+  // src/app/actions/auth.ts
+  "use server";
+
+  export async function myAction(data: any) {
+    // This runs strictly on the server
+    return { success: true };
+  }
+  ```
+* **Inline-Level (Directly inside a Server Component)**:
+  Add `"use server";` inside the body of an async function defined inside a Server Component:
+  ```typescript
+  export default function MyServerComponent() {
+    async function handleFormSubmit() {
+      "use server";
+      // DB operations here...
+    }
+    return <form action={handleFormSubmit}>...</form>;
+  }
+  ```
+
+#### 3. Server Actions vs. Route Handlers (`route.ts`)
+While both run server-side code, they serve different architectural purposes:
+
+| Feature | Server Actions | Route Handlers (`route.ts`) |
+| :--- | :--- | :--- |
+| **Communication Style** | RPC (Remote Procedure Call) | REST API endpoints (GET, POST, etc.) |
+| **Data Format** | Returns plain JS objects/types | Returns standard HTTP `Response` (JSON) |
+| **Primary Use Case** | Web UI form submissions, toggles, button actions | Public API access, webhooks, mobile app links |
+| **React Integration** | Integrates with `useTransition`, `useActionState` | Independent of React; consumed via HTTP `fetch` |
+| **File Convention** | Defined in standard `.ts`/`.tsx` files | Defined strictly in `route.ts` folders |
+
+* **When to use Server Actions**: For internal user actions on your website (such as submitting forms, registering users, deleting items, or sending a chat message).
+* **When to use Route Handlers**: When you need to build endpoint URLs that external clients need to access (for example: Webhook endpoints for Razorpay/Stripe, or endpoints consumed by external mobile apps).
+
+### Q8: The Next.js 16 "proxy.ts" File Convention
+
+**Question:**
+Why does Next.js 16 use `proxy.ts` instead of `middleware.ts`? What is it, and how is it different from traditional middleware?
+
+**Answer:**
+Starting with **Next.js 16**, the file convention previously known as `middleware.ts` has been officially renamed to **`proxy.ts`** (or `proxy.js`), and the main exported handler must be named `proxy`.
+
+Here is why this change was introduced and how it compares to traditional middleware:
+
+#### 1. Why the Rename?
+In traditional backend frameworks like Express, "middleware" refers to functions that run in a sequential chain inside your server application.
+* Next.js's routing interceptor is different: it runs on the **edge network layer** before the request even enters the application server routing logic.
+* To prevent confusion, the Next.js team renamed the convention to `proxy.ts`. This term better signals that the feature acts as a **gateway proxy** at the network boundary, used for routing, rewriting, redirecting, and header modification.
+
+#### 2. Key Details of `proxy.ts`
+* **File Location**: Placed in the root directory or inside the `src/` folder (e.g. `src/proxy.ts`).
+* **Export Signature**: You export a function named `proxy`:
+  ```typescript
+  import { NextResponse } from "next/server";
+  import type { NextRequest } from "next/server";
+
+  export function proxy(request: NextRequest) {
+    // Intercept logic here
+    return NextResponse.next();
+  }
+  ```
+* **Matcher Config**: You can export a `config` object with a `matcher` array to filter which routes the proxy intercepts, preventing it from executing on public assets or unrelated pages.
+
+#### 3. How it Differs from Traditional Proxies
+* **Network Proxies (Nginx, Cloudflare)**: Standalone servers that route traffic. They have no access to your Next.js project code, routes, or local variables.
+* **Next.js `proxy.ts`**: Runs inside a lightweight Edge JavaScript runtime in your project. It can dynamically inspect application cookies, URLs, and redirect/rewrite paths, though it cannot query databases directly due to runtime restrictions.
 
 
+### Q9: Cookie-Based Sessions vs. JWT Access/Refresh Tokens
 
+**Question:**
+In standard SPA React + Express setups, we do JWT authentication where we store access/refresh tokens in memory or localStorage and refresh them every few minutes. How are we doing authentication here, and why?
+
+**Answer:**
+In our Next.js application, we are using **HttpOnly Session Cookies** instead of manual client-side JWT token storage.
+
+Here is why Next.js authentication is designed differently and why session cookies are highly secure for this architecture.
+
+#### 1. Why standard SPAs need Access/Refresh Tokens:
+* In a decoupled setup (e.g. React running on `localhost:3000` and Express API running on `localhost:8000`), you are running cross-origin (CORS). Standard cookies are harder to pass securely across domains.
+* Developers store **Access Tokens** (which expire in 15m) in browser memory, and **Refresh Tokens** (which last longer) inside a cookie or database to fetch new access tokens. This prevents attackers from stealing a long-lived key if your site is vulnerable to cross-site scripting (XSS).
+
+#### 2. How we are doing it here (Session Cookies):
+In Next.js, because your client-side React code and your server-side database actions run on the **same domain**, we can use browser cookies directly.
+1. When you login, the server sets a cookie named `session_user` containing the user's ID.
+2. The cookie is marked `httpOnly: true` (which blocks all JavaScript access; hackers cannot steal it via XSS) and `secure: true` (only sent over HTTPS).
+3. The browser automatically attaches this cookie to every request—including page navigation, Server Actions, and Middleware.
+4. We read this cookie server-side via `cookies().get("session_user")` and check it against the database.
+
+#### 3. Why we don't need token refresh mechanics:
+* Because the browser natively secures `httpOnly` cookies from XSS scripting, we do not need to constantly refresh short-lived keys. The browser handles token transmission, and we can set the cookie to expire in 7 days safely.
+
+#### 4. The Production Standard (Auth.js / NextAuth)
+For our database-backed authentication phase in production, we will use **Auth.js** (formerly NextAuth.js). 
+* Auth.js automates this cookie strategy by signing, encrypting (using JWE - JSON Web Encryption), and rotating the session token in the cookie. This guarantees that clients cannot temper with or read the ID inside the cookie directly, providing production-ready security with zero manual cookie manipulation.
 
 

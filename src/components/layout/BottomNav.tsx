@@ -4,8 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Users, PieChart, User } from "lucide-react";
 
-export function BottomNav() {
+interface BottomNavProps {
+  isAuthenticated?: boolean;
+}
+
+export function BottomNav({ isAuthenticated = false }: BottomNavProps) {
   const pathname = usePathname();
+
+  // Hide the navigation entirely on mobile for logged out visitors
+  if (!isAuthenticated) return null;
 
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
@@ -15,7 +22,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 z-50 w-full border-t bg-background/80 backdrop-blur-md md:hidden">
+    <div className="fixed bottom-0 z-50 w-full border-t border-border bg-background/80 backdrop-blur-md md:hidden">
       <nav className="flex items-center justify-around pb-safe">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
