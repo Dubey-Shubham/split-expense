@@ -14,6 +14,7 @@ Welcome! This file tracks design decisions, explanations, and answers to your qu
 7. [Server Actions vs. Route Handlers](#q7-server-actions-vs-route-handlers)
 8. [The Next.js 16 "proxy.ts" File Convention](#q8-the-nextjs-16-proxyts-file-convention)
 9. [Cookie-Based Sessions vs. JWT Access/Refresh Tokens](#q9-cookie-based-sessions-vs-jwt-accessrefresh-tokens)
+10. [Database Design: Junction Tables vs. Array Columns](#q10-database-design-junction-tables-vs-array-columns)
 
 ---
 
@@ -350,3 +351,36 @@ For our database-backed authentication phase in production, we will use **Auth.j
 * Auth.js automates this cookie strategy by signing, encrypting (using JWE - JSON Web Encryption), and rotating the session token in the cookie. This guarantees that clients cannot temper with or read the ID inside the cookie directly, providing production-ready security with zero manual cookie manipulation.
 
 
+### Q10: Database Design: Junction Tables vs. Array Columns
+
+**Question:**
+In our database, we have 3 tables: `users`, `groups`, and `groupMembers`. Why do we have a separate table for members instead of just storing an array of member IDs in a column on the `groups` table?
+
+**Answer:**
+What you are describing (the `groupMembers` table) is called a **Junction Table** (or mapping table). It is used to create a **Many-to-Many relationship**, because:
+- One **User** can belong to *many* Groups.
+- One **Group** can have *many* Users.
+
+While PostgreSQL *does* technically support storing arrays in a single column (e.g., `memberIds: [1, 5, 9]`), we use a separate `groupMembers` table for four critical reasons:
+
+#### 1. Data Integrity (Foreign Keys)
+If you store IDs in an array, the database doesn't actually "know" those numbers represent real users. With a junction table, we use **Foreign Keys**. This means the database strictly enforces that every member in a group actually exists in the `users` table. 
+If a user deletes their account, the database can automatically remove them from all their groups using "Cascade Delete". You can't do this automatically with an array column.
+
+#### 2. Query Performance
+Imagine you have 10,000 groups, and you want to load the dashboard to show *only* the groups you belong to. 
+- **With an Array:** The database has to scan through the array column of *every single group* to see if your ID is inside it. This is very slow without specialized JSONB/Array operators and indexing.
+- **With a Junction Table:** The database creates an index on `userId`. It can instantly say, "User #5 is in Group A and Group B" without scanning the whole database. This makes our `innerJoin()` incredibly fast.
+
+#### 3. Future-Proofing (Extensibility)
+Right now, `groupMembers` only maps a User to a Group. But what if, later on, we want to add:
+- **Roles:** Who is the Admin of the group vs a regular member?
+- **Join Date:** When did a specific user join the group?
+- **Nicknames:** Allowing users to have a specific nickname inside a specific group.
+
+With a junction table, we just add a new column (e.g., `role: text`). If we used an array of IDs, adding this metadata would become a nightmare.
+
+#### 4. Relational Database Standards (Normalization)
+In traditional SQL databases (unlike NoSQL databases like MongoDB), storing lists of things inside a single column violates a core principle called **First Normal Form (1NF)**. Keeping data flat and relational makes it infinitely easier to write complex SQL queries later, like calculating how much money a specific user owes across all their groups.
+
+> **Rule of Thumb:** If you are using MongoDB (NoSQL), storing IDs in an array is very common. If you are using PostgreSQL/MySQL (SQL), always use a Junction Table for many-to-many relationships!

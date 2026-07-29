@@ -11,3 +11,29 @@ export const users = pgTable("users", {
   upiId: text("upi_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const groups = pgTable("groups", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  description: text("description"),
+  avatar: text("avatar").notNull().default("other"), // 'home', 'trip', 'food', 'party', 'other'
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const groupMembers = pgTable("group_members", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+});

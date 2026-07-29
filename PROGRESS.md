@@ -55,5 +55,11 @@ This document maintains the context of our development steps for the Shared Expe
 - **[Completed]**: Redesigned the root Home dashboard (`src/app/(app)/page.tsx`) to render a high-converting, dark-themed, glassmorphic marketing landing page listing features (Personal Budgets, Shared Groups, UPI, Real-time Chat) for unauthenticated visitors, while loading a private dashboard welcoming authenticated users.
 - **[Completed]**: Added a global routing proxy (`src/proxy.ts`) to intercept `/login` and `/signup` requests, redirecting authenticated users (possessing active session cookies) back to the home page `/`.
 
+### Phase 2: Group Expenses Management
 
-
+**Step 6: Group Expenses Schema & UI**
+- **[Completed]**: Added `groups` and `groupMembers` relational tables to `src/lib/db/schema.ts`, linking groups to creators and members to user profiles with cascade deletes.
+- **[Completed]**: Ran migrations (`db:generate`) and updated the live Neon cloud PostgreSQL database (`db:push`).
+- **[Completed]**: Developed Server Actions (`getGroupsAction`, `createGroupAction`, `deleteGroupAction`) in `src/app/actions/groups.ts` to perform database operations.
+- **[Completed]**: Built a premium, glassmorphic UI layout at `src/app/(app)/groups/page.tsx` showing a Splitwise-like balance overview card (calculating Net balance, You are owed, and You owe summaries for pre-seeded dummy groups), category avatar selectors (Rent, Travel, Food, Drinks, Other), group creation dialog forms, and delete triggers.
+- **[Completed]**: Verified build compilation with `npm run lint` returning zero warnings and zero errors.
