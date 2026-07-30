@@ -1,23 +1,32 @@
-import { cookies } from "next/headers";
-import { BottomNav } from "@/components/layout/BottomNav";
+import { Suspense } from "react";
 import { TopNav } from "@/components/layout/TopNav";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { BottomNavAuthSection } from "@/components/layout/NavAuthSection";
 
-export default async function AppLayout({
+/**
+ * AppLayout — static Server Component
+ *
+ * No cookies(), no dynamic APIs. The layout shell is statically rendered.
+ * Auth-aware content streams in via Suspense inside TopNav and BottomNavAuthSection.
+ */
+export default function AppLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("session_user")?.value;
-  const isAuthenticated = !!userId;
-
   return (
     <>
-      <TopNav isAuthenticated={isAuthenticated} />
+      <TopNav />
+
       <main className="flex-1 flex flex-col w-full max-w-8xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6">
         {children}
       </main>
-      <BottomNav isAuthenticated={isAuthenticated} />
+
+      <Suspense fallback={null}>
+        <BottomNavAuthSection>
+          <BottomNav />
+        </BottomNavAuthSection>
+      </Suspense>
     </>
   );
 }
