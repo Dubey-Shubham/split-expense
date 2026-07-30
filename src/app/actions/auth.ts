@@ -90,7 +90,8 @@ export async function signUpAction(data: {
     });
 
     return { success: true };
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.digest === "HANGING_PROMISE_REJECTION") throw err;
     console.error("SignUp Server Action Error:", err);
     return { success: false, error: "An unexpected error occurred. Please try again." };
   }
@@ -134,7 +135,8 @@ export async function loginAction(data: {
     });
 
     return { success: true };
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.digest === "HANGING_PROMISE_REJECTION") throw err;
     console.error("Login Server Action Error:", err);
     return { success: false, error: "An unexpected error occurred. Please try again." };
   }
@@ -185,7 +187,8 @@ export async function getCurrentUserAction() {
       email: user.email,
       upiId: user.upiId,
     };
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.digest === "HANGING_PROMISE_REJECTION") throw err;
     console.error("GetCurrentUser Action Error:", err);
     return null;
   }

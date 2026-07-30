@@ -1,16 +1,15 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { getCurrentUserAction } from "@/app/actions/auth";
-import { getGroupsAction } from "@/app/actions/groups";
+import { cookies } from "next/headers";
 import { Sparkles, Users, Home, Plane, Utensils, Beer, Wallet } from "lucide-react";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { DeleteGroupButton } from "./DeleteGroupButton";
+import { getGroupsForUser } from "@/lib/data/groups";
 
 export const metadata = {
   title: "Group Expenses | Splitwise Lite",
   description: "Track shared expenditures, trip bills, and settle balances with friends.",
 };
-
-export const dynamic = "force-dynamic";
 
 // ── Static helpers ──────────────────────────────────────────────────────────
 
@@ -50,16 +49,154 @@ function calculateSummaries(groups: { name: string }[]) {
   return { owe: youOwe, owed: youAreOwed, net: youAreOwed - youOwe };
 }
 
-export default async function GroupsPage() {
-  const user = await getCurrentUserAction();
-  if (!user) redirect("/login");
+async function LedgerAmounts() {
+  // await new Promise((resolve) => setTimeout(resolve, 2000));
+  const cookieStore = await cookies();
+  const userId = cookieStore.get("session_user")?.value;
+  if (!userId) redirect("/login");
 
-  const res = await getGroupsAction();
-  const initialGroups = res.success && res.groups ? res.groups : [];
-  const summaries = calculateSummaries(initialGroups);
+  const groups = await getGroupsForUser(userId);
+  const summaries = calculateSummaries(groups);
 
   return (
+    <>
+      <div className="flex flex-col space-y-1 justify-center sm:pr-4">
+        <span className="text-xs font-medium text-muted-foreground">You are owed</span>
+        <span className="text-2xl font-black text-emerald-500">
+          ₹{summaries.owed.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+        </span>
+      </div>
+      <div className="flex flex-col space-y-1 justify-center pt-4 sm:pt-0 sm:px-6">
+        <span className="text-xs font-medium text-muted-foreground">You owe</span>
+        <span className="text-2xl font-black text-orange-500">
+          ₹{summaries.owe.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+        </span>
+      </div>
+      <div className="flex flex-col space-y-1 justify-center pt-4 sm:pt-0 sm:pl-6">
+        <span className="text-xs font-medium text-muted-foreground">Net balance</span>
+        <span className={`text-2xl font-black ${summaries.net >= 0 ? "text-emerald-500" : "text-orange-500"}`}>
+          {summaries.net >= 0 ? "+" : ""}₹{summaries.net.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+        </span>
+      </div>
+    </>
+  );
+}
+
+function LedgerAmountsSkeleton() {
+  return (
+    <>
+      <div className="flex flex-col space-y-1 justify-center sm:pr-4">
+        <span className="text-xs font-medium text-muted-foreground">You are owed</span>
+        <div className="h-8 w-24 bg-muted animate-pulse rounded-lg mt-1" />
+      </div>
+      <div className="flex flex-col space-y-1 justify-center pt-4 sm:pt-0 sm:px-6">
+        <span className="text-xs font-medium text-muted-foreground">You owe</span>
+        <div className="h-8 w-24 bg-muted animate-pulse rounded-lg mt-1" />
+      </div>
+      <div className="flex flex-col space-y-1 justify-center pt-4 sm:pt-0 sm:pl-6">
+        <span className="text-xs font-medium text-muted-foreground">Net balance</span>
+        <div className="h-8 w-24 bg-muted animate-pulse rounded-lg mt-1" />
+      </div>
+    </>
+  );
+}
+
+async function GroupsGrid() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get("session_user")?.value;
+  if (!userId) redirect("/login");
+
+  const groups = await getGroupsForUser(userId);
+
+  if (groups.length === 0) {
+    return (
+      <div className="border border-dashed border-border rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4">
+        <div className="h-16 w-16 rounded-2xl bg-muted/50 border flex items-center justify-center text-muted-foreground">
+          <Users className="h-8 w-8" />
+        </div>
+        <div className="space-y-1.5">
+          <h4 className="font-bold text-foreground">No groups yet</h4>
+          <p className="text-sm text-muted-foreground max-w-[280px]">
+            Create your first group to start splitting bills and settling balances with friends.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {groups.map((group) => {
+        const balance = getGroupBalance(group.name);
+        const isCreator = group.createdBy === userId;
+
+        return (
+          <div
+            key={group.id}
+            className="bg-card border border-border hover:border-primary/30 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group/card relative overflow-hidden cursor-pointer"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
+                  {getCategoryIcon(group.avatar)}
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground group-hover/card:text-primary transition-colors pr-6">
+                    {group.name}
+                  </h4>
+                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                    {group.description || "No description provided."}
+                  </p>
+                </div>
+              </div>
+              {isCreator && <DeleteGroupButton groupId={group.id} />}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-border/60 pt-4 mt-5">
+              <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
+                <Users className="h-3.5 w-3.5" />
+                <span>{group.memberCount} members</span>
+              </div>
+              <div className={`px-2.5 py-1 rounded-full border text-[11px] font-bold ${balance.color}`}>
+                {balance.text} {balance.amount > 0 ? `₹${balance.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : ""}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function GroupsGridSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="bg-card border border-border rounded-3xl p-5 shadow-sm flex flex-col justify-between h-[150px]">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="h-12 w-12 rounded-2xl bg-muted animate-pulse" />
+              <div className="space-y-2">
+                <div className="h-4 w-32 bg-muted animate-pulse rounded-md" />
+                <div className="h-3 w-40 bg-muted animate-pulse rounded-md" />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between border-t border-border/60 pt-4 mt-5">
+            <div className="h-4 w-20 bg-muted animate-pulse rounded-md" />
+            <div className="h-6 w-24 bg-muted animate-pulse rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+export default function GroupsPage() {
+  return (
     <div className="space-y-8 w-full max-w-6xl mx-auto pb-12">
+
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">Group Expenses</h2>
@@ -68,7 +205,6 @@ export default async function GroupsPage() {
         <CreateGroupModal />
       </div>
 
-      {/* Summary Ledger */}
       <div className="bg-card border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-[-40%] right-[-10%] w-[50%] h-[120%] rounded-full bg-primary/5 blur-[70px] pointer-events-none" />
 
@@ -78,82 +214,15 @@ export default async function GroupsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 divide-y sm:divide-y-0 sm:divide-x divide-border">
-          <div className="flex flex-col space-y-1 justify-center sm:pr-4">
-            <span className="text-xs font-medium text-muted-foreground">You are owed</span>
-            <span className="text-2xl font-black text-emerald-500">
-              ₹{summaries.owed.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div className="flex flex-col space-y-1 justify-center pt-4 sm:pt-0 sm:px-6">
-            <span className="text-xs font-medium text-muted-foreground">You owe</span>
-            <span className="text-2xl font-black text-orange-500">
-              ₹{summaries.owe.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div className="flex flex-col space-y-1 justify-center pt-4 sm:pt-0 sm:pl-6">
-            <span className="text-xs font-medium text-muted-foreground">Net balance</span>
-            <span className={`text-2xl font-black ${summaries.net >= 0 ? "text-emerald-500" : "text-orange-500"}`}>
-              {summaries.net >= 0 ? "+" : ""}₹{summaries.net.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </span>
-          </div>
+          <Suspense fallback={<LedgerAmountsSkeleton />}>
+            <LedgerAmounts />
+          </Suspense>
         </div>
       </div>
 
-      {/* Groups Grid */}
-      {initialGroups.length === 0 ? (
-        <div className="border border-dashed border-border rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4">
-          <div className="h-16 w-16 rounded-2xl bg-muted/50 border flex items-center justify-center text-muted-foreground">
-            <Users className="h-8 w-8" />
-          </div>
-          <div className="space-y-1.5">
-            <h4 className="font-bold text-foreground">No groups yet</h4>
-            <p className="text-sm text-muted-foreground max-w-[280px]">
-              Create your first group to start splitting bills and settling balances with friends.
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {initialGroups.map((group) => {
-            const balance = getGroupBalance(group.name);
-            const isCreator = group.createdBy === user.id;
-
-            return (
-              <div
-                key={group.id}
-                className="bg-card border border-border hover:border-primary/30 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group/card relative overflow-hidden cursor-pointer"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
-                      {getCategoryIcon(group.avatar)}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-foreground group-hover/card:text-primary transition-colors pr-6">
-                        {group.name}
-                      </h4>
-                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                        {group.description || "No description provided."}
-                      </p>
-                    </div>
-                  </div>
-                  {isCreator && <DeleteGroupButton groupId={group.id} />}
-                </div>
-
-                <div className="flex items-center justify-between border-t border-border/60 pt-4 mt-5">
-                  <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
-                    <Users className="h-3.5 w-3.5" />
-                    <span>{group.memberCount} members</span>
-                  </div>
-                  <div className={`px-2.5 py-1 rounded-full border text-[11px] font-bold ${balance.color}`}>
-                    {balance.text} {balance.amount > 0 ? `₹${balance.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : ""}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <Suspense fallback={<GroupsGridSkeleton />}>
+        <GroupsGrid />
+      </Suspense>
     </div>
   );
 }

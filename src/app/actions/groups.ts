@@ -4,70 +4,9 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db/db";
 import { groups, groupMembers, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
-// getGroupsAction
-// Retrieves all groups that the currently logged-in user is a member of.
-// It also enriches the group data with the total member count and the creator's full name.
-export async function getGroupsAction() {
-  try {
-    // 1. Session Retrieval: Access the cookies to find the logged-in user's ID
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("session_user")?.value;
 
-    // 2. Auth Guard: If there is no user ID in the cookie, reject the request
-    if (!userId) {
-      return { success: false, error: "Unauthorized. Please log in first." };
-    }
-
-    // 3. Database Query (Join): Fetch groups where the user is a member
-    const userGroups = await db
-      .select({ // 1. select(): We specify exactly which columns we want to retrieve from the database.
-        id: groups.id,
-        name: groups.name,
-        description: groups.description,
-        avatar: groups.avatar,
-        createdBy: groups.createdBy,
-        createdAt: groups.createdAt,
-      })
-      .from(groupMembers) // 2. from(): We start our query on the 'groupMembers' table.
-      .innerJoin(groups, eq(groupMembers.groupId, groups.id)) // 3. innerJoin(): We join the 'groups' table to get the actual group details.
-      .where(eq(groupMembers.userId, userId)); // 4. where(): We filter the entire joined result.
-
-    // 4. Data Enrichment: Loop over the groups to add extra information
-    const enrichedGroups = [];
-    for (const group of userGroups) {
-      // 4a. Count Members: Query the groupMembers table to see how many users are in this group
-      const membersList = await db
-        .select() // .select(): Fetch all columns for the rows that match
-        .from(groupMembers) // .from(): Look inside the 'groupMembers' table
-        .where(eq(groupMembers.groupId, group.id)); // .where(): Only grab members that belong to this specific group.id
-
-      // 4b. Get Creator Name: Look up the user who created the group to display their name
-      const [creator] = await db
-        .select({ // .select(): Fetch only the firstName and lastName to save bandwidth
-          firstName: users.firstName,
-          lastName: users.lastName,
-        })
-        .from(users) // .from(): Look inside the 'users' table
-        .where(eq(users.id, group.createdBy)) // .where(): Find the exact user whose ID matches the group's 'createdBy' field
-        .limit(1); // .limit(1): Stop searching after finding the first match (since IDs are unique, there's only one creator)
-
-      // 4c. Assemble Final Object: Combine the base group data with the new calculated fields
-      enrichedGroups.push({
-        ...group,
-        memberCount: membersList.length,
-        creatorName: creator ? `${creator.firstName} ${creator.lastName}` : "System User",
-      });
-    }
-
-    // 5. Success Return: Send the fully enriched list of groups back to the frontend component
-    return { success: true, groups: enrichedGroups };
-  } catch (err) {
-    console.error("getGroupsAction Error:", err);
-    return { success: false, error: "Failed to fetch groups." };
-  }
-}
 
 // createGroupAction
 //--Creates a new group and automatically adds the creator as its first member
@@ -114,13 +53,14 @@ export async function createGroupAction(data: {
       userId: userId,
     });
 
-    // 5. Cache Invalidation: Tell Next.js that the data on the "/groups" page is now stale.
-    //    This forces the page to re-run getGroupsAction() on the server and show the new group instantly.
+    // 5. Cache Invalidation
     revalidatePath("/groups");
+    revalidateTag(`groups-${userId}`, "hours");
 
     // 6. Success Return: Return the new group data to the frontend
     return { success: true, group: newGroup };
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.digest === "HANGING_PROMISE_REJECTION") throw err;
     console.error("createGroupAction Error:", err);
     return { success: false, error: "An unexpected error occurred." };
   }
@@ -158,13 +98,14 @@ export async function deleteGroupAction(groupId: string) {
     //    delete all 'groupMembers' and (future) 'expenses' linked to this group ID!
     await db.delete(groups).where(eq(groups.id, groupId));
 
-    // 5. Cache Invalidation: Tell Next.js that the data on the "/groups" page is now stale.
-    //    This forces the server to re-render the page without the deleted group.
+    // 5. Cache Invalidation
     revalidatePath("/groups");
+    revalidateTag(`groups-${userId}`, "hours");
 
     // 6. Success Return
     return { success: true };
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.digest === "HANGING_PROMISE_REJECTION") throw err;
     console.error("deleteGroupAction Error:", err);
     return { success: false, error: "Failed to delete the group." };
   }

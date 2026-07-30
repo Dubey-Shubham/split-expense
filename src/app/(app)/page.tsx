@@ -5,7 +5,86 @@ import { WelcomeCard } from "@/app/components/WelcomeCard";
 import { WelcomeCardSkeleton } from "@/app/components/WelcomeCardSkeleton";
 import { getCurrentUserAction } from "@/app/actions/auth";
 
-export default async function Home() {
+export default function Home() {
+  return (
+    <Suspense fallback={<HomeSkeleton />}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function QuickActionsSection() {
+  return (
+    <section>
+      <h3 className="mb-4 pl-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        Quick Actions
+      </h3>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Link
+          href="/groups"
+          className="group flex items-center gap-5 rounded-3xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:border-blue-500/40 hover:shadow-md hover:shadow-blue-500/5"
+        >
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-500 transition-colors group-hover:bg-blue-500/15">
+            <Users className="h-7 w-7" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-foreground">Group Expenses</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Split bills with roommates or friends on trips
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-blue-500" />
+        </Link>
+
+        <Link
+          href="/budget"
+          className="group flex items-center gap-5 rounded-3xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:border-emerald-500/40 hover:shadow-md hover:shadow-emerald-500/5"
+        >
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 transition-colors group-hover:bg-emerald-500/15">
+            <Receipt className="h-7 w-7" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-foreground">Personal Budget</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Track and manage your daily spending budgets
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-emerald-500" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function StatsSection() {
+  return (
+    <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      {[
+        { label: "Groups Joined", value: "—", color: "text-blue-500" },
+        { label: "This Month Spent", value: "—", color: "text-orange-500" },
+        { label: "You Are Owed", value: "—", color: "text-emerald-500" },
+        { label: "Settled This Week", value: "—", color: "text-purple-500" },
+      ].map((stat) => (
+        <div
+          key={stat.label}
+          className="flex flex-col gap-1.5 rounded-2xl border border-border bg-card p-4 shadow-sm"
+        >
+          <span className="text-xs font-medium text-muted-foreground">
+            {stat.label}
+          </span>
+          <span className={`text-2xl font-black ${stat.color}`}>
+            {stat.value}
+          </span>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+// ── Dynamic Content ──────────────────────────────────────────────────────────
+
+async function HomeContent() {
   const user = await getCurrentUserAction();
 
   if (!user) {
@@ -96,70 +175,21 @@ export default async function Home() {
   // Authenticated view
   return (
     <div className="w-full max-w-6xl mx-auto space-y-10 py-6 px-2">
-      <Suspense fallback={<WelcomeCardSkeleton />}>
-        <WelcomeCard />
-      </Suspense>
+      <WelcomeCard />
+      <QuickActionsSection />
+      <StatsSection />
+    </div>
+  );
+}
 
-      <section>
-        <h3 className="mb-4 pl-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Quick Actions
-        </h3>
+// ── Static Fallback Shell (PRERENDERED BY NEXT.JS PPR) ───────────────────────
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Link
-            href="/groups"
-            className="group flex items-center gap-5 rounded-3xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:border-blue-500/40 hover:shadow-md hover:shadow-blue-500/5"
-          >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 text-blue-500 transition-colors group-hover:bg-blue-500/15">
-              <Users className="h-7 w-7" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-foreground">Group Expenses</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Split bills with roommates or friends on trips
-              </p>
-            </div>
-            <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-blue-500" />
-          </Link>
-
-          <Link
-            href="/budget"
-            className="group flex items-center gap-5 rounded-3xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:border-emerald-500/40 hover:shadow-md hover:shadow-emerald-500/5"
-          >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 transition-colors group-hover:bg-emerald-500/15">
-              <Receipt className="h-7 w-7" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-foreground">Personal Budget</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Track and manage your daily spending budgets
-              </p>
-            </div>
-            <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-emerald-500" />
-          </Link>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {[
-          { label: "Groups Joined", value: "—", color: "text-blue-500" },
-          { label: "This Month Spent", value: "—", color: "text-orange-500" },
-          { label: "You Are Owed", value: "—", color: "text-emerald-500" },
-          { label: "Settled This Week", value: "—", color: "text-purple-500" },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="flex flex-col gap-1.5 rounded-2xl border border-border bg-card p-4 shadow-sm"
-          >
-            <span className="text-xs font-medium text-muted-foreground">
-              {stat.label}
-            </span>
-            <span className={`text-2xl font-black ${stat.color}`}>
-              {stat.value}
-            </span>
-          </div>
-        ))}
-      </section>
+function HomeSkeleton() {
+  return (
+    <div className="w-full max-w-6xl mx-auto space-y-10 py-6 px-2">
+      <WelcomeCardSkeleton />
+      <QuickActionsSection />
+      <StatsSection />
     </div>
   );
 }
