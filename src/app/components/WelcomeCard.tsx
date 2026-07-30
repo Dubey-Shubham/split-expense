@@ -1,18 +1,34 @@
+import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { Sparkles, TrendingUp, Calendar } from "lucide-react";
-import { getCurrentUserAction } from "@/app/actions/auth";
+import { getUserProfile } from "@/lib/data/users";
+
+async function UserNameText() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get("session_user")?.value;
+  if (!userId) return <span className="text-2xl font-extrabold tracking-tight text-foreground">Guest 👋</span>;
+
+  const user = await getUserProfile(userId);
+  if (!user) return <span className="text-2xl font-extrabold tracking-tight text-foreground">User 👋</span>;
+
+  return (
+    <span className="text-2xl font-extrabold tracking-tight text-foreground">
+      {user.firstName} {user.lastName} 👋
+    </span>
+  );
+}
+
+function UserNameSkeleton() {
+  return <div className="h-7 w-44 bg-muted animate-pulse rounded-md my-0.5 inline-block" />;
+}
 
 /**
- * WelcomeCard — async Server Component
+ * WelcomeCard
  *
- * The ONLY part of the home page that reads cookies.
- * Wrapped in <Suspense> in page.tsx so the static shell renders instantly
- * and this streams in after the DB query resolves.
- * Returns null for unauthenticated visitors (shell handles that state).
+ * The card shell (border, icons, greeting, calendar, active badge) is 100% static.
+ * Only the username is dynamic and streams in via a precise <Suspense> boundary around the text.
  */
-export async function WelcomeCard() {
-  const user = await getCurrentUserAction();
-  if (!user) return null;
-
+export function WelcomeCard() {
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -24,7 +40,6 @@ export async function WelcomeCard() {
 
       <div className="relative flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
-
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm">
             <Sparkles className="h-7 w-7" />
           </div>
@@ -33,8 +48,10 @@ export async function WelcomeCard() {
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               {greeting}
             </p>
-            <h2 className="mt-0.5 text-2xl font-extrabold tracking-tight text-foreground">
-              {user.firstName} {user.lastName} 👋
+            <h2 className="mt-0.5 flex items-center">
+              <Suspense fallback={<UserNameSkeleton />}>
+                <UserNameText />
+              </Suspense>
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Here&apos;s your financial overview for today.

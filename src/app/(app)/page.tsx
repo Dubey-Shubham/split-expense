@@ -2,14 +2,11 @@ import { Suspense } from "react";
 import { ArrowRight, Users, Receipt, PieChart, MessageSquare, QrCode } from "lucide-react";
 import Link from "next/link";
 import { WelcomeCard } from "@/app/components/WelcomeCard";
-import { WelcomeCardSkeleton } from "@/app/components/WelcomeCardSkeleton";
 import { getCurrentUserAction } from "@/app/actions/auth";
 
 export default function Home() {
   return (
-    <Suspense fallback={<HomeSkeleton />}>
-      <HomeContent />
-    </Suspense>
+    <HomeContent />
   );
 }
 
@@ -81,8 +78,6 @@ function StatsSection() {
     </section>
   );
 }
-
-// ── Dynamic Content ──────────────────────────────────────────────────────────
 
 async function HomeContent() {
   const user = await getCurrentUserAction();
@@ -172,22 +167,9 @@ async function HomeContent() {
     );
   }
 
-  // Authenticated view
   return (
     <div className="w-full max-w-6xl mx-auto space-y-10 py-6 px-2">
       <WelcomeCard />
-      <QuickActionsSection />
-      <StatsSection />
-    </div>
-  );
-}
-
-// ── Static Fallback Shell (PRERENDERED BY NEXT.JS PPR) ───────────────────────
-
-function HomeSkeleton() {
-  return (
-    <div className="w-full max-w-6xl mx-auto space-y-10 py-6 px-2">
-      <WelcomeCardSkeleton />
       <QuickActionsSection />
       <StatsSection />
     </div>

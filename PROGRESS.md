@@ -3,10 +3,10 @@
 This document maintains the context of our development steps for the Shared Expense Tracker app. It ensures that any AI assistant on any machine can understand the project's current state and history.
 
 ## Architecture
-- **Framework**: Next.js 16 (stable v16 release)
+- **Framework**: Next.js 16 (Next.js App Router with Partial Prerendering & `"use cache"`)
 - **Database**: Neon (Serverless Postgres) with Drizzle ORM
 - **Styling**: Tailwind CSS + shadcn/ui (Mobile-first responsive design)
-- **Auth**: Auth.js
+- **Auth**: Cookie-based session authentication with PBKDF2 password hashing
 - **Goal**: Build a personal budget + shared group expenses tracker with UPI settlement and real-time chat.
 
 ## Development Log
@@ -63,3 +63,17 @@ This document maintains the context of our development steps for the Shared Expe
 - **[Completed]**: Developed Server Actions (`getGroupsAction`, `createGroupAction`, `deleteGroupAction`) in `src/app/actions/groups.ts` to perform database operations.
 - **[Completed]**: Built a premium, glassmorphic UI layout at `src/app/(app)/groups/page.tsx` showing a Splitwise-like balance overview card (calculating Net balance, You are owed, and You owe summaries for pre-seeded dummy groups), category avatar selectors (Rent, Travel, Food, Drinks, Other), group creation dialog forms, and delete triggers.
 - **[Completed]**: Verified build compilation with `npm run lint` returning zero warnings and zero errors.
+
+### Phase 3: Performance, PPR Architecture & Data Caching
+
+**Step 7: Partial Prerendering (PPR) & `"use cache"` Data Access Layer**
+- **[Completed]**: Enabled `experimental.cacheComponents: true` in `next.config.ts` to activate Next.js 15+ Partial Prerendering (PPR) for static shell prerendering with dynamic streaming.
+- **[Completed]**: **Data Access Layer (`src/lib/data/groups.ts`)**: Built `getGroupsForUser(userId)` decorated with `"use cache"`, `cacheTag("groups-" + userId)`, and `cacheLife("hours")`. Optimized SQL query waterfalls using `Promise.all` parallelization to fetch member counts and creator details concurrently.
+- **[Completed]**: **User Data Layer (`src/lib/data/users.ts`)**: Built `getUserProfile(userId)` decorated with `"use cache"`, `cacheTag("user-" + userId)`, and `cacheLife("hours")`.
+- **[Completed]**: **Security Architecture**: Separated private, parameter-based data access functions (`src/lib/data/`) from public Server Actions (`src/app/actions/` marked with `"use server"`). This prevents external malicious actors from spoofing `userId` parameters via POST API calls.
+- **[Completed]**: **Fine-Grained Suspense Boundaries & Shimmer Optimization**:
+  - `src/app/(app)/groups/page.tsx`: Isolated dynamic components (`<LedgerAmounts />` and `<GroupsGrid />`) within `<Suspense>` boundaries. The outer page heading, create modal button, and ledger card container render statically without shimmering.
+  - `src/app/components/WelcomeCard.tsx`: Kept the card shell (border, background glow, sparkle icon, calendar badge, active badge) 100% static. Wrapped only the `<UserNameText />` inside `<Suspense>`, providing a focused micro-shimmer line fallback for the name text only.
+  - `src/app/(app)/page.tsx`: Embedded the static `<WelcomeCard />`, `<QuickActionsSection />`, and `<StatsSection />` inside `HomeSkeleton` so the entire home page shell renders statically on initial load.
+- **[Completed]**: **Cache Invalidation**: Updated `createGroupAction` and `deleteGroupAction` in `src/app/actions/groups.ts` to invoke `revalidateTag("groups-" + userId, "hours")` alongside `revalidatePath("/groups")` for instant on-demand cache busting.
+- **[Completed]**: **PPR Signal Handling**: Added `if (err?.digest === "HANGING_PROMISE_REJECTION") throw err;` to catch blocks in auth and group Server Actions to support Next.js PPR static prerender signal pass-through.
