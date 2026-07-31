@@ -29,9 +29,6 @@ function UserNameSkeleton() {
  * Only the username is dynamic and streams in via a precise <Suspense> boundary around the text.
  */
 export function WelcomeCard() {
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-xl md:p-8">
@@ -46,7 +43,7 @@ export function WelcomeCard() {
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              {greeting}
+              Welcome Back
             </p>
             <h2 className="mt-0.5 flex items-center">
               <Suspense fallback={<UserNameSkeleton />}>
@@ -60,16 +57,6 @@ export function WelcomeCard() {
         </div>
 
         <div className="hidden shrink-0 flex-col items-end gap-1 sm:flex">
-          <div className="flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5" />
-            <span>
-              {new Date().toLocaleDateString("en-IN", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-              })}
-            </span>
-          </div>
           <div className="flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/8 px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
             <TrendingUp className="h-3 w-3" />
             <span>Active</span>

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import { TopNav } from "@/components/layout/TopNav";
-import { BottomNav } from "@/components/layout/BottomNav";
-import { BottomNavAuthSection } from "@/components/layout/NavAuthSection";
+import { TopNav } from "@/app/components/layout/TopNav";
+import { BottomNav } from "@/app/components/layout/BottomNav";
+import { BottomNavAuthSection } from "@/app/components/layout/NavAuthSection";
 
 /**
  * AppLayout — static Server Component

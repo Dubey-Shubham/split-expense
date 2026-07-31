@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Sparkles, Users, Home, Plane, Utensils, Beer, Wallet } from "lucide-react";
-import { CreateGroupModal } from "./CreateGroupModal";
-import { DeleteGroupButton } from "./DeleteGroupButton";
+import { CreateGroupModal } from "@/app/components/groups/CreateGroupModal";
+import { DeleteGroupButton } from "@/app/components/groups/DeleteGroupButton";
 import { getGroupsForUser } from "@/lib/data/groups";
 
 export const metadata = {
@@ -195,15 +195,7 @@ function GroupsGridSkeleton() {
 
 export default function GroupsPage() {
   return (
-    <div className="space-y-8 w-full max-w-6xl mx-auto pb-12">
-
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">Group Expenses</h2>
-          <p className="text-sm text-muted-foreground">Split bills, track logs, and settle up balances</p>
-        </div>
-        <CreateGroupModal />
-      </div>
+    <div className="space-y-8 w-full max-w-6xl mx-auto py-6 px-2">
 
       <div className="bg-card border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-[-40%] right-[-10%] w-[50%] h-[120%] rounded-full bg-primary/5 blur-[70px] pointer-events-none" />
@@ -218,6 +210,14 @@ export default function GroupsPage() {
             <LedgerAmounts />
           </Suspense>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Group Expenses</h2>
+          <p className="text-sm text-muted-foreground">Split bills, track logs, and settle up balances</p>
+        </div>
+        <CreateGroupModal />
       </div>
 
       <Suspense fallback={<GroupsGridSkeleton />}>

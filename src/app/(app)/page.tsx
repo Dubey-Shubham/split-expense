@@ -1,12 +1,24 @@
 import { Suspense } from "react";
 import { ArrowRight, Users, Receipt, PieChart, MessageSquare, QrCode } from "lucide-react";
 import Link from "next/link";
-import { WelcomeCard } from "@/app/components/WelcomeCard";
+import { WelcomeCard } from "@/app/components/home/WelcomeCard";
 import { getCurrentUserAction } from "@/app/actions/auth";
+
+function HomeSkeleton() {
+  return (
+    <div className="w-full max-w-6xl mx-auto space-y-10 py-6 px-2">
+      <WelcomeCard />
+      <QuickActionsSection />
+      <StatsSection />
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <HomeContent />
+    <Suspense fallback={<HomeSkeleton />}>
+      <HomeContent />
+    </Suspense>
   );
 }
 
