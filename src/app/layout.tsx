@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "@/app/components/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,14 +26,25 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <div className="flex min-h-[100dvh] w-full flex-col relative">
-          {children}
-        </div>
+        <ThemeProvider
+          attribute="class"              // will change theme by class change
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange      //temporarily disables CSS transitions during the theme switch so the change appears instant, then restores transitions afterward
+        >
+          <div className="flex min-h-[100dvh] w-full flex-col relative">
+            {children}
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
 
+// The ThemeProvider here is essentially a wrapper around the provider from the next-themes library. It makes the current theme (light, dark, or system) available to your entire React application through React Context.
+
+// It is inside rootlayout to insert same class in every component

@@ -186,6 +186,7 @@ export async function getCurrentUserAction() {
       lastName: user.lastName,
       email: user.email,
       upiId: user.upiId,
+      mobileNumber: user.mobileNumber,
     };
   } catch (err: any) {
     if (err?.digest === "HANGING_PROMISE_REJECTION") throw err;

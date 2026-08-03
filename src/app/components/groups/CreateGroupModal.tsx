@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { AlertCircle, Loader2, Plus, X, Home, Plane, Utensils, Beer, Wallet } from "lucide-react";
 import { createGroupAction } from "@/app/actions/groups";
 import { useForm, useWatch } from "react-hook-form";
