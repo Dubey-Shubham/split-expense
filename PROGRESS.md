@@ -77,3 +77,16 @@ This document maintains the context of our development steps for the Shared Expe
   - `src/app/(app)/page.tsx`: Embedded the static `<WelcomeCard />`, `<QuickActionsSection />`, and `<StatsSection />` inside `HomeSkeleton` so the entire home page shell renders statically on initial load.
 - **[Completed]**: **Cache Invalidation**: Updated `createGroupAction` and `deleteGroupAction` in `src/app/actions/groups.ts` to invoke `revalidateTag("groups-" + userId, "hours")` alongside `revalidatePath("/groups")` for instant on-demand cache busting.
 - **[Completed]**: **PPR Signal Handling**: Added `if (err?.digest === "HANGING_PROMISE_REJECTION") throw err;` to catch blocks in auth and group Server Actions to support Next.js PPR static prerender signal pass-through.
+
+### Phase 4: Structural Refactoring, User Profiles & Theming
+
+**Step 8: Route-based Component Refactoring**
+- **[Completed]**: Restructured `src/components/` moving feature-specific UI elements into collocated `src/app/components/{route}/` directories for better encapsulation and maintenance (`home`, `groups`, `layout`).
+- **[Completed]**: Successfully validated imports and Next.js builds post-refactoring.
+
+**Step 9: Profile Section & Dark Mode**
+- **[Completed]**: Upgraded the Neon Database schema adding an optional `mobileNumber` column to the `users` table and pushed migrations.
+- **[Completed]**: Configured Tailwind v4 class-based dark mode (`@custom-variant dark`) and integrated `next-themes` seamlessly via a global `<ThemeProvider>` inside `RootLayout`.
+- **[Completed]**: Built a dedicated User Profile settings page (`/profile`) that allows users to edit personal details, mobile numbers, and UPI handles, persisting instantly via Server Actions (`updateProfileAction`) with localized `revalidateTag` cache busting.
+- **[Completed]**: Developed an `<InitialsAvatar>` component mapping first and last names to dynamic deterministic background colors to avoid complex file storage requirements.
+- **[Completed]**: Replaced manual HTML Form data scraping with `react-hook-form` for enhanced controlled-component form handling in `<ProfileForm>`.
