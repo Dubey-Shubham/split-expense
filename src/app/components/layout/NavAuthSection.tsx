@@ -68,7 +68,7 @@ export async function NavAuthSection({ pathname }: { pathname?: string }) {
       </Link>
 
       {/* Logout Button (client, handles router.refresh) */}
-      <LogoutButton />
+      <LogoutButton className="hidden md:flex" />
     </nav>
   );
 }

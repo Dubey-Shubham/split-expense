@@ -61,10 +61,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="space-y-4 bg-card border border-border rounded-2xl p-6 shadow-sm">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-4 bg-card border border-border rounded-2xl p-4 shadow-sm">
         <h3 className="text-lg font-semibold text-foreground tracking-tight">Personal Details</h3>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name</Label>
@@ -83,9 +83,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </div>
       </div>
 
-      <div className="space-y-4 bg-card border border-border rounded-2xl p-6 shadow-sm">
+      <div className="space-y-4 bg-card border border-border rounded-2xl p-4 shadow-sm">
         <h3 className="text-lg font-semibold text-foreground tracking-tight">Additional Info</h3>
-        
+
         <div className="space-y-2">
           <Label htmlFor="mobileNumber">Mobile Number (Optional)</Label>
           <Input id="mobileNumber" type="tel" placeholder="+1 (555) 000-0000" {...register("mobileNumber")} />
@@ -99,11 +99,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
       {message && (
         <div
-          className={`p-3 rounded-xl text-sm font-medium ${
-            message.type === "success"
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-              : "bg-destructive/10 text-destructive border border-destructive/20"
-          }`}
+          className={`p-3 rounded-xl text-sm font-medium ${message.type === "success"
+            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+            : "bg-destructive/10 text-destructive border border-destructive/20"
+            }`}
         >
           {message.text}
         </div>
