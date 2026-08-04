@@ -90,3 +90,6 @@ This document maintains the context of our development steps for the Shared Expe
 - **[Completed]**: Built a dedicated User Profile settings page (`/profile`) that allows users to edit personal details, mobile numbers, and UPI handles, persisting instantly via Server Actions (`updateProfileAction`) with localized `revalidateTag` cache busting.
 - **[Completed]**: Developed an `<InitialsAvatar>` component mapping first and last names to dynamic deterministic background colors to avoid complex file storage requirements.
 - **[Completed]**: Replaced manual HTML Form data scraping with `react-hook-form` for enhanced controlled-component form handling in `<ProfileForm>`.
+- **[Completed]**: Upgraded `<ProfileSkeleton>` to perfectly mirror the loaded UI layout (including static labels and 3-card structure) for a seamless Partial Prerendering (PPR) streaming transition without layout shift.
+- **[Completed]**: Refined `<LogoutButton>` visibility using responsive design (`hidden md:flex`), moving it into the top navbar on desktop while rendering it inline with text on the mobile profile page.
+- **[Completed]**: Added an auto-dismissing 3-second timeout for success notifications in `<ProfileForm>` via `useEffect`.
