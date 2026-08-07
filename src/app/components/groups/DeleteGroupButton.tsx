@@ -4,6 +4,7 @@ import React, { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { deleteGroupAction } from "@/app/actions/groups";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 export function DeleteGroupButton({ groupId }: { groupId: string }) {
   const [isPending, startTransition] = useTransition();
@@ -19,8 +20,9 @@ export function DeleteGroupButton({ groupId }: { groupId: string }) {
     startTransition(async () => {
       const res = await deleteGroupAction(groupId);
       if (!res.success) {
-        alert(res.error || "Failed to delete group.");
+        toast.error(res.error || "Failed to delete group.");
       } else {
+        toast.success("Group deleted successfully!");
         setIsOpen(false);
       }
     });

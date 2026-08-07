@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateProfileAction } from "@/app/actions/profile";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface ProfileFormProps {
   user: {
@@ -27,7 +28,6 @@ interface ProfileFormData {
 
 export function ProfileForm({ user }: ProfileFormProps) {
   const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const { register, handleSubmit } = useForm<ProfileFormData>({
     defaultValues: {
@@ -38,24 +38,13 @@ export function ProfileForm({ user }: ProfileFormProps) {
     },
   });
 
-  useEffect(() => {
-    if (message?.type === "success") {
-      const timer = setTimeout(() => {
-        setMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
-
   const onSubmit = (data: ProfileFormData) => {
-    setMessage(null);
-
     startTransition(async () => {
       const result = await updateProfileAction(data);
       if (result.success) {
-        setMessage({ type: "success", text: "Profile updated successfully!" });
+        toast.success("Profile updated successfully!");
       } else {
-        setMessage({ type: "error", text: result.error || "Failed to update profile." });
+        toast.error(result.error || "Failed to update profile.");
       }
     });
   };
@@ -97,16 +86,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </div>
       </div>
 
-      {message && (
-        <div
-          className={`p-3 rounded-xl text-sm font-medium ${message.type === "success"
-            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-            : "bg-destructive/10 text-destructive border border-destructive/20"
-            }`}
-        >
-          {message.text}
-        </div>
-      )}
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending} className="rounded-xl px-8 shadow-md">

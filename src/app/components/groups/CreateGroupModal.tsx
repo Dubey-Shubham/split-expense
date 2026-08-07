@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { AlertCircle, Loader2, Plus, X, Home, Plane, Utensils, Beer, Wallet } from "lucide-react";
 import { createGroupAction } from "@/app/actions/groups";
+import { toast } from "sonner";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -57,9 +58,11 @@ export function CreateGroupModal() {
 
       if (!res.success) {
         setError(res.error || "Failed to create group.");
+        toast.error(res.error || "Failed to create group.");
         return;
       }
 
+      toast.success("Group created successfully!");
       reset();
       setIsCreateOpen(false);
     });
@@ -83,7 +86,7 @@ export function CreateGroupModal() {
 
       {isCreateOpen && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-background backdrop-blur-sm z-50 border border-border rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
             <div className="flex items-center justify-between border-b border-border/80 px-6 py-4">
               <h3 className="font-bold text-foreground text-lg">Create New Group</h3>
@@ -109,7 +112,7 @@ export function CreateGroupModal() {
                   type="text"
                   placeholder="e.g. Goa Trip 2026, Flatmates, Rent Bills"
                   {...register("name")}
-                  className={`w-full bg-background border ${errors.name ? "border-destructive focus:ring-destructive/20" : "border-border focus:border-primary focus:ring-primary/20"} text-foreground rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-1 transition-all`}
+                  className={`w-full bg-muted/50 border ${errors.name ? "border-destructive focus:ring-destructive/20" : "border-border/50 focus:border-primary focus:ring-primary/20"} text-foreground rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-1 transition-all`}
                 />
                 {errors.name && (
                   <p className="text-xs text-destructive mt-1">{errors.name.message}</p>
@@ -122,7 +125,7 @@ export function CreateGroupModal() {
                   placeholder="What is this group for?"
                   {...register("description")}
                   rows={2}
-                  className="w-full bg-background border border-border text-foreground rounded-xl py-2.5 px-4 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all resize-none"
+                  className="w-full bg-muted/50 border border-border/50 text-foreground rounded-xl py-2.5 px-4 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all resize-none"
                 />
               </div>
 
@@ -139,7 +142,7 @@ export function CreateGroupModal() {
                         onClick={() => setValue("avatar", cat.value, { shouldValidate: true })}
                         className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all cursor-pointer ${isSelected
                           ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
+                          : "border-border/50 bg-muted/30 hover:bg-muted/70 text-muted-foreground hover:text-foreground"
                           }`}
                         title={cat.label}
                       >

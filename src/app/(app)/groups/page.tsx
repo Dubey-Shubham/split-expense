@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Sparkles, Users, Home, Plane, Utensils, Beer, Wallet } from "lucide-react";
@@ -131,9 +132,10 @@ async function GroupsGrid() {
         const isCreator = group.createdBy === userId;
 
         return (
-          <div
+          <Link
+            href={`/groups/${group.id}`}
             key={group.id}
-            className="bg-card border border-border hover:border-primary/30 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group/card relative overflow-hidden cursor-pointer"
+            className="bg-card border border-border hover:border-primary/30 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between h-[150px] group/card relative overflow-hidden cursor-pointer block"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-4">
@@ -161,7 +163,7 @@ async function GroupsGrid() {
                 {balance.text} {balance.amount > 0 ? `₹${balance.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : ""}
               </div>
             </div>
-          </div>
+          </Link>
         );
       })}
     </div>

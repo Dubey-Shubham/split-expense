@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { db } from "@/lib/db/db";
 import { groups, groupMembers, users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, ilike, or, and, notInArray } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 
 
@@ -63,6 +63,104 @@ export async function createGroupAction(data: {
     if (err?.digest === "HANGING_PROMISE_REJECTION") throw err;
     console.error("createGroupAction Error:", err);
     return { success: false, error: "An unexpected error occurred." };
+  }
+}
+
+export async function searchUsersAction(query: string, groupId: string) {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("session_user")?.value;
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    if (!query.trim() || query.length < 2) {
+      return { success: true, data: [] };
+    }
+
+    const searchTerm = `%${query.trim()}%`;
+
+    // Get current member IDs so we can exclude them from the search results
+    const currentMembers = await db
+      .select({ userId: groupMembers.userId })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, groupId));
+      
+    const currentMemberIds = currentMembers.map(m => m.userId);
+
+    // Search users by email or mobileNumber (and exclude existing members)
+    const results = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        mobileNumber: users.mobileNumber,
+      })
+      .from(users)
+      .where(
+        and(
+          or(
+            ilike(users.email, searchTerm),
+            ilike(users.mobileNumber, searchTerm)
+          ),
+          currentMemberIds.length > 0 ? notInArray(users.id, currentMemberIds) : undefined
+        )
+      )
+      .limit(5);
+
+    return { success: true, data: results };
+  } catch (error: any) {
+    if (error?.digest === "HANGING_PROMISE_REJECTION") throw error;
+    console.error("Search users error:", error);
+    return { success: false, error: "Failed to search users" };
+  }
+}
+
+export async function addGroupMemberAction(groupId: string, targetUserIds: string[]) {
+  try {
+    const cookieStore = await cookies();
+    const currentUserId = cookieStore.get("session_user")?.value;
+    
+    if (!currentUserId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // 1. Verify current user is actually a member of this group
+    const [membership] = await db
+      .select()
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.userId, currentUserId)
+        )
+      )
+      .limit(1);
+
+    if (!membership) {
+      return { success: false, error: "You do not have permission to add members to this group." };
+    }
+
+    // 2. Add the target users to the group
+    const insertValues = targetUserIds.map((userId) => ({
+      groupId,
+      userId,
+    }));
+
+    await db.insert(groupMembers).values(insertValues);
+
+    // 3. Invalidate caches so the UI updates instantly
+    revalidatePath(`/groups/${groupId}`);
+    revalidateTag(`group-details-${groupId}`, "hours");
+    for (const userId of targetUserIds) {
+      revalidateTag(`groups-${userId}`, "hours");
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    if (error?.digest === "HANGING_PROMISE_REJECTION") throw error;
+    console.error("Add group member error:", error);
+    // If it's a unique constraint violation (they are already in the group), it might throw.
+    return { success: false, error: "Failed to add member to group." };
   }
 }
 

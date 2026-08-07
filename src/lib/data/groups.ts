@@ -1,25 +1,14 @@
 // Import Next.js 15 cache utilities for on-demand tag revalidation and lifetime configuration
 import { cacheTag, cacheLife } from "next/cache";
-
-// Import database client instance (Drizzle ORM connected to PostgreSQL)
 import { db } from "@/lib/db/db";
-
-// Import Drizzle table schema definitions for groups, groupMembers, and users
 import { groups, groupMembers, users } from "@/lib/db/schema";
-
-// Import equality operator 'eq' from Drizzle ORM to build SQL WHERE clauses
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 // Export the asynchronous data fetcher function that retrieves all groups for a given user ID
 export async function getGroupsForUser(userId: string) {
-  // Instructs Next.js App Router to cache the return value of this entire function
-  "use cache";
-
-  // Assigns a unique cache key tag for this user (e.g. 'groups-usr123') so we can invalidate it with revalidateTag()
-  cacheTag(`groups-${userId}`);
-
-  // Configures the cache lifetime profile to 'hours' (automatically refreshes/stales after a few hours)
-  cacheLife("hours");
+  "use cache";                        // Instructs Next.js App Router to cache the return value of this entire function
+  cacheTag(`groups-${userId}`);       // Assigns a unique cache key tag for this user (e.g. 'groups-usr123') so we can invalidate it with revalidateTag()
+  cacheLife("hours");                 // Configures the cache lifetime profile to 'hours' (automatically refreshes/stales after a few hours)
 
   // Query PostgreSQL database to fetch all groups where this user is listed as a member
   const userGroups = await db
@@ -69,4 +58,50 @@ export async function getGroupsForUser(userId: string) {
 
   // Return the final list of enriched, cached group objects
   return enrichedGroups;
+}
+
+export async function getGroupDetails(groupId: string, currentUserId: string) {
+  "use cache";
+  cacheTag(`group-details-${groupId}`);
+  cacheLife("hours");
+
+  // 1. Verify the current user is actually a member of this group for strict security
+  const [membership] = await db
+    .select()
+    .from(groupMembers)
+    .where(and(
+      eq(groupMembers.groupId, groupId),
+      eq(groupMembers.userId, currentUserId)
+    ))
+    .limit(1);
+
+  if (!membership) {
+    return null; // Unauthorized or group doesn't exist
+  }
+
+  // 2. Fetch Group Details
+  const [groupInfo] = await db
+    .select()
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .limit(1);
+
+  if (!groupInfo) return null;
+
+  // 3. Fetch all Members of the group (joining groupMembers with users)
+  const members = await db
+    .select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+    })
+    .from(groupMembers)
+    .innerJoin(users, eq(groupMembers.userId, users.id))
+    .where(eq(groupMembers.groupId, groupId));
+
+  return {
+    ...groupInfo,
+    members,
+  };
 }
