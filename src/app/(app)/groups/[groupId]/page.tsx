@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddMemberDialog } from "@/app/components/groups/AddMemberDialog";
 import { CopyGroupLinkButton } from "@/app/components/groups/CopyGroupLinkButton";
+import { RemoveMemberButton } from "@/app/components/groups/RemoveMemberButton";
 
 // We need an exact match for group params type in Next.js 16 dynamic routes
 interface GroupPageProps {
@@ -20,7 +21,7 @@ export const metadata = {
 
 // --- Sub-components for better organization ---
 
-function GroupHeader({ group }: { group: any }) {
+function GroupHeader({ group, currentUserId }: { group: any; currentUserId: string }) {
   // A simple mapping for avatars based on the group's "avatar" string
   const getAvatarIcon = (type: string) => {
     switch (type) {
@@ -61,17 +62,39 @@ function GroupHeader({ group }: { group: any }) {
               <DialogTitle className="text-xl font-bold">Group Members</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
-              {group.members.map((member: any) => (
-                <div key={member.id} className="flex items-center gap-3 bg-muted/30 p-3 rounded-2xl border border-border/50">
-                  <div className="h-10 w-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">
-                    {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+              {group.members.map((member: any) => {
+                const isCurrentUser = member.id === currentUserId;
+                const isAdmin = member.id === group.createdBy;
+                const canRemove = currentUserId === group.createdBy && !isAdmin;
+
+                return (
+                  <div key={member.id} className="flex items-center gap-3 bg-muted/30 p-3 rounded-2xl border border-border/50">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                      {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{member.firstName} {member.lastName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {isCurrentUser && (
+                        <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                          (you)
+                        </span>
+                      )}
+                      {isAdmin && (
+                        <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-md">
+                          Admin
+                        </span>
+                      )}
+                      {canRemove && (
+                        <RemoveMemberButton groupId={group.id} userId={member.id} />
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{member.firstName} {member.lastName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </DialogContent>
         </Dialog>
@@ -98,7 +121,7 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
 
   return (
     <div className="space-y-6">
-      <GroupHeader group={group} />
+      <GroupHeader group={group} currentUserId={user.id} />
 
       {group.members.length === 1 ? (
         <div className="mt-6 bg-card border border-border rounded-3xl p-10 shadow-sm flex flex-col items-center justify-center text-center">

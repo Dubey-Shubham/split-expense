@@ -208,3 +208,48 @@ export async function deleteGroupAction(groupId: string) {
     return { success: false, error: "Failed to delete the group." };
   }
 }
+
+export async function removeGroupMemberAction(groupId: string, targetUserId: string) {
+  try {
+    const cookieStore = await cookies();
+    const currentUserId = cookieStore.get("session_user")?.value;
+    
+    if (!currentUserId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // 1. Verify current user is actually the creator/admin of this group
+    const [groupInfo] = await db
+      .select()
+      .from(groups)
+      .where(eq(groups.id, groupId))
+      .limit(1);
+
+    if (!groupInfo || groupInfo.createdBy !== currentUserId) {
+      return { success: false, error: "You do not have permission to remove members from this group." };
+    }
+
+    if (currentUserId === targetUserId) {
+      return { success: false, error: "You cannot remove yourself. Delete the group instead." };
+    }
+
+    // 2. Remove the target user from the group
+    await db.delete(groupMembers).where(
+      and(
+        eq(groupMembers.groupId, groupId),
+        eq(groupMembers.userId, targetUserId)
+      )
+    );
+
+    // 3. Invalidate caches
+    revalidatePath(`/groups/${groupId}`);
+    revalidateTag(`group-details-${groupId}`, "hours");
+    revalidateTag(`groups-${targetUserId}`, "hours");
+
+    return { success: true };
+  } catch (error: any) {
+    if (error?.digest === "HANGING_PROMISE_REJECTION") throw error;
+    console.error("Remove group member error:", error);
+    return { success: false, error: "Failed to remove member from group." };
+  }
+}
