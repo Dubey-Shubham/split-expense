@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AddMemberDialog } from "@/app/components/groups/AddMemberDialog";
 import { CopyGroupLinkButton } from "@/app/components/groups/CopyGroupLinkButton";
 import { RemoveMemberButton } from "@/app/components/groups/RemoveMemberButton";
+import { getGroupExpenses } from "@/lib/data/expenses";
+import { GroupExpensesFeed } from "@/app/components/groups/GroupExpensesFeed";
 
 // We need an exact match for group params type in Next.js 16 dynamic routes
 interface GroupPageProps {
@@ -119,6 +121,8 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
     redirect("/groups");
   }
 
+  const expenses = await getGroupExpenses(groupId);
+
   return (
     <div className="space-y-6">
       <GroupHeader group={group} currentUserId={user.id} />
@@ -161,17 +165,17 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
               </TabsTrigger>
             </TabsList>
 
-            <div className="mt-6 bg-card border border-border rounded-3xl p-6 min-h-[300px] shadow-sm flex items-center justify-center">
-              <TabsContent value="settle" className="m-0 text-center text-muted-foreground w-full">
-                Settle Sub-section (Coming Soon)
+            <div className="mt-6">
+              <TabsContent value="settle" className="m-0 w-full outline-none">
+                <GroupExpensesFeed expenses={expenses} currentUserId={user.id} />
               </TabsContent>
-              <TabsContent value="messages" className="m-0 text-center text-muted-foreground w-full">
+              <TabsContent value="messages" className="m-0 text-center text-muted-foreground w-full bg-card border border-border rounded-3xl p-6 min-h-[300px] shadow-sm flex items-center justify-center">
                 Messages Sub-section (Coming Soon)
               </TabsContent>
-              <TabsContent value="balances" className="m-0 text-center text-muted-foreground w-full">
+              <TabsContent value="balances" className="m-0 text-center text-muted-foreground w-full bg-card border border-border rounded-3xl p-6 min-h-[300px] shadow-sm flex items-center justify-center">
                 Balances Sub-section (Coming Soon)
               </TabsContent>
-              <TabsContent value="totals" className="m-0 text-center text-muted-foreground w-full">
+              <TabsContent value="totals" className="m-0 text-center text-muted-foreground w-full bg-card border border-border rounded-3xl p-6 min-h-[300px] shadow-sm flex items-center justify-center">
                 Totals Sub-section (Coming Soon)
               </TabsContent>
             </div>
