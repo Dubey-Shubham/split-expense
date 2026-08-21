@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
-import { Home, Plane, Utensils, Beer, Wallet, Receipt } from "lucide-react";
+import { Home, Plane, Utensils, Beer, Receipt } from "lucide-react";
+import { AddExpenseDialog } from "@/app/components/groups/AddExpenseDialog";
 
-export function GroupExpensesFeed({ expenses, currentUserId }: { expenses: any[], currentUserId: string }) {
-  // Group by Month Year
+export function GroupExpensesFeed({ group, expenses, currentUserId }: { group: any, expenses: any[], currentUserId: string }) {
+
   const grouped = expenses.reduce((acc, expense) => {
     const date = new Date(expense.createdAt);
     const monthYear = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
@@ -28,12 +28,7 @@ export function GroupExpensesFeed({ expenses, currentUserId }: { expenses: any[]
       {/* Add Expense Button Placeholder */}
       <div className="flex justify-between items-center bg-card p-4 sm:p-5 rounded-3xl border border-border shadow-sm">
         <h3 className="font-bold text-foreground sm:text-lg">Group Expenses</h3>
-        <button 
-          onClick={() => alert("Add Expense Popup Coming Soon!")}
-          className="bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary/90 transition-colors"
-        >
-          Add Expense
-        </button>
+        <AddExpenseDialog group={group} currentUserId={currentUserId} />
       </div>
 
       {Object.keys(grouped).length === 0 ? (
@@ -51,16 +46,16 @@ export function GroupExpensesFeed({ expenses, currentUserId }: { expenses: any[]
           <div key={monthYear} className="space-y-3">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-2">{monthYear}</h4>
             <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm divide-y divide-border/50">
-              {monthExpenses.map((expense) => {
+              {(monthExpenses as any[]).map((expense) => {
                 const date = new Date(expense.createdAt);
                 const day = new Intl.DateTimeFormat("en-US", { day: "2-digit" }).format(date);
                 const month = new Intl.DateTimeFormat("en-US", { month: "short" }).format(date);
-                
+
                 // Calculate balance logic
                 const userSplit = expense.splits.find((s: any) => s.userId === currentUserId);
                 const iPaid = expense.paidById === currentUserId;
                 const totalAmount = parseFloat(expense.amount);
-                
+
                 let balanceText = "Not involved";
                 let balanceAmount = "";
                 let balanceColor = "text-muted-foreground";

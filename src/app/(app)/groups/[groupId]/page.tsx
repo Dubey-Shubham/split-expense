@@ -167,7 +167,7 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
 
             <div className="mt-6">
               <TabsContent value="settle" className="m-0 w-full outline-none">
-                <GroupExpensesFeed expenses={expenses} currentUserId={user.id} />
+                <GroupExpensesFeed group={group} expenses={expenses} currentUserId={user.id} />
               </TabsContent>
               <TabsContent value="messages" className="m-0 text-center text-muted-foreground w-full bg-card border border-border rounded-3xl p-6 min-h-[300px] shadow-sm flex items-center justify-center">
                 Messages Sub-section (Coming Soon)
