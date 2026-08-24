@@ -145,7 +145,7 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
       ) : (
         <>
 
-          <Tabs defaultValue="messages" className="w-full">
+          <Tabs defaultValue="settle" className="w-full">
             <TabsList className="flex w-full rounded-2xl bg-card border border-border p-1 !h-auto gap-1 shadow-sm">
               <TabsTrigger value="settle" className="flex-1 rounded-xl py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary flex flex-col gap-1 h-auto">
                 <Wallet className="h-4 w-4" />
