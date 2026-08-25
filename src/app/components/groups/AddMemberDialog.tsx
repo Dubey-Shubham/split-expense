@@ -8,7 +8,7 @@ import { UserPlus, Loader2, Search, X } from "lucide-react";
 import { searchUsersAction, addGroupMemberAction } from "@/app/actions/groups";
 import { toast } from "sonner";
 
-export function AddMemberDialog({ groupId }: { groupId: string }) {
+export function AddMemberDialog({ groupId, variant = "default" }: { groupId: string; variant?: "default" | "icon" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -73,10 +73,16 @@ export function AddMemberDialog({ groupId }: { groupId: string }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger className="flex items-center justify-center w-full rounded-xl py-3 bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-md transition-all">
-        <UserPlus className="mr-2 h-5 w-5" />
-        Add Group Member
-      </DialogTrigger>
+      {variant === "icon" ? (
+        <DialogTrigger className="flex flex-row items-center justify-center h-[52px] w-[52px] sm:h-14 sm:w-14 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0">
+          <UserPlus className="h-5 w-5 sm:h-6 sm:w-6" />
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger className="flex items-center justify-center w-full rounded-xl py-3 bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-md transition-all">
+          <UserPlus className="mr-2 h-5 w-5" />
+          Add Group Member
+        </DialogTrigger>
+      )}
 
       <DialogContent className="sm:max-w-lg bg-background backdrop-blur-sm z-50 border border-border shadow-2xl rounded-3xl p-6 flex flex-col">
         <DialogHeader>

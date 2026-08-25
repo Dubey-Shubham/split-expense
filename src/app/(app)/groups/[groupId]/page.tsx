@@ -11,6 +11,7 @@ import { CopyGroupLinkButton } from "@/app/components/groups/CopyGroupLinkButton
 import { RemoveMemberButton } from "@/app/components/groups/RemoveMemberButton";
 import { getGroupExpenses } from "@/lib/data/expenses";
 import { GroupExpensesFeed } from "@/app/components/groups/GroupExpensesFeed";
+import { GroupBalances } from "@/app/components/groups/GroupBalances";
 
 // We need an exact match for group params type in Next.js 16 dynamic routes
 interface GroupPageProps {
@@ -52,55 +53,61 @@ function GroupHeader({ group, currentUserId }: { group: any; currentUserId: stri
         )}
       </div>
 
-      {/* Members Dialog Trigger */}
-      {group.members.length > 1 && (
-        <Dialog>
-          <DialogTrigger className="flex flex-col items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0">
-            <span className="text-xl sm:text-2xl font-black">{group.members.length}</span>
-            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Members</span>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-3xl p-6">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold">Group Members</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
-              {group.members.map((member: any) => {
-                const isCurrentUser = member.id === currentUserId;
-                const isAdmin = member.id === group.createdBy;
-                const canRemove = currentUserId === group.createdBy && !isAdmin;
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2 sm:gap-3 z-10 shrink-0">
 
-                return (
-                  <div key={member.id} className="flex items-center gap-3 bg-muted/30 p-3 rounded-2xl border border-border/50">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">
-                      {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+        <AddMemberDialog groupId={group.id} variant="icon" />
+
+        {/* Members Dialog Trigger */}
+        {group.members.length > 1 && (
+          <Dialog>
+            <DialogTrigger className="flex flex-row items-center justify-center gap-1 h-[52px] px-3 sm:h-14 sm:px-4 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0">
+              <span className="text-sm sm:text-base font-black leading-none">{group.members.length}</span>
+              <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-widerml-2">Members</span>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md bg-background backdrop-blur-sm z-50 border border-border shadow-2xl rounded-3xl p-6">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold">Group Members</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
+                {group.members.map((member: any) => {
+                  const isCurrentUser = member.id === currentUserId;
+                  const isAdmin = member.id === group.createdBy;
+                  const canRemove = currentUserId === group.createdBy && !isAdmin;
+
+                  return (
+                    <div key={member.id} className="flex items-center gap-3 bg-muted/30 p-3 rounded-2xl border border-border/50">
+                      <div className="h-10 w-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                        {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{member.firstName} {member.lastName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {isCurrentUser && (
+                          <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                            (you)
+                          </span>
+                        )}
+                        {isAdmin && (
+                          <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-md">
+                            Admin
+                          </span>
+                        )}
+                        {canRemove && (
+                          <RemoveMemberButton groupId={group.id} userId={member.id} />
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{member.firstName} {member.lastName}</p>
-                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      {isCurrentUser && (
-                        <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
-                          (you)
-                        </span>
-                      )}
-                      {isAdmin && (
-                        <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-md">
-                          Admin
-                        </span>
-                      )}
-                      {canRemove && (
-                        <RemoveMemberButton groupId={group.id} userId={member.id} />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+                  );
+                })}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
     </div>
   );
 }
@@ -124,7 +131,7 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
   const expenses = await getGroupExpenses(groupId);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1 min-h-0 space-y-6">
       <GroupHeader group={group} currentUserId={user.id} />
 
       {group.members.length === 1 ? (
@@ -145,8 +152,8 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
       ) : (
         <>
 
-          <Tabs defaultValue="settle" className="w-full">
-            <TabsList className="flex w-full rounded-2xl bg-card border border-border p-1 !h-auto gap-1 shadow-sm">
+          <Tabs defaultValue="settle" className="w-full flex flex-col flex-1 min-h-0">
+            <TabsList className="flex w-full rounded-2xl bg-card border border-border p-1 !h-auto gap-1 shadow-sm shrink-0">
               <TabsTrigger value="settle" className="flex-1 rounded-xl py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary flex flex-col gap-1 h-auto">
                 <Wallet className="h-4 w-4" />
                 <span className="text-[10px] sm:text-xs font-medium">Settle</span>
@@ -159,24 +166,24 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
                 <HelpCircle className="h-4 w-4" />
                 <span className="text-[10px] sm:text-xs font-medium">Balances</span>
               </TabsTrigger>
-              <TabsTrigger value="totals" className="flex-1 rounded-xl py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary flex flex-col gap-1 h-auto">
-                <Calculator className="h-4 w-4" />
-                <span className="text-[10px] sm:text-xs font-medium">Totals</span>
-              </TabsTrigger>
             </TabsList>
 
-            <div className="mt-6">
-              <TabsContent value="settle" className="m-0 w-full outline-none">
+            <div className="mt-4 flex flex-col flex-1 min-h-0">
+              <TabsContent value="settle" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
                 <GroupExpensesFeed group={group} expenses={expenses} currentUserId={user.id} />
               </TabsContent>
-              <TabsContent value="messages" className="m-0 text-center text-muted-foreground w-full bg-card border border-border rounded-3xl p-6 min-h-[300px] shadow-sm flex items-center justify-center">
-                Messages Sub-section (Coming Soon)
+              <TabsContent value="messages" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
+                <div className="relative w-full flex flex-col flex-1 min-h-0">
+                  <div className="flex items-center justify-between mb-4 shrink-0">
+                    <h3 className="text-lg font-bold text-foreground ml-2">Messages</h3>
+                  </div>
+                  <div className="w-full flex-1 min-h-0 bg-card border border-border rounded-3xl p-6 shadow-sm flex items-center justify-center text-center text-muted-foreground">
+                    Messages Sub-section (Coming Soon)
+                  </div>
+                </div>
               </TabsContent>
-              <TabsContent value="balances" className="m-0 text-center text-muted-foreground w-full bg-card border border-border rounded-3xl p-6 min-h-[300px] shadow-sm flex items-center justify-center">
-                Balances Sub-section (Coming Soon)
-              </TabsContent>
-              <TabsContent value="totals" className="m-0 text-center text-muted-foreground w-full bg-card border border-border rounded-3xl p-6 min-h-[300px] shadow-sm flex items-center justify-center">
-                Totals Sub-section (Coming Soon)
+              <TabsContent value="balances" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
+                <GroupBalances group={group} expenses={expenses} currentUserId={user.id} />
               </TabsContent>
             </div>
           </Tabs>
@@ -206,18 +213,20 @@ function GroupSkeleton() {
 
 export default function GroupPage({ params }: GroupPageProps) {
   return (
-    <div className="w-full max-w-6xl mx-auto py-6 px-4 space-y-6">
+    <div className="w-full max-w-6xl mx-auto px-4 flex flex-col overflow-hidden h-[calc(100dvh-16rem)] md:h-[calc(100dvh-10rem)]">
       {/* Static Header Nav */}
-      <div className="flex items-center">
+      <div className="flex items-center shrink-0 mb-6">
         <Link href="/groups" className="flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">
           <ArrowLeft className="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" />
           Back to Groups
         </Link>
       </div>
 
-      <Suspense fallback={<GroupSkeleton />}>
-        <GroupContent params={params} />
-      </Suspense>
+      <div className="flex flex-col flex-1 min-h-0">
+        <Suspense fallback={<GroupSkeleton />}>
+          <GroupContent params={params} />
+        </Suspense>
+      </div>
     </div>
   );
 }

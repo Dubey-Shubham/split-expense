@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createExpenseAction } from "@/app/actions/expenses";
+import { createExpenseAction, editExpenseAction } from "@/app/actions/expenses";
 import { toast } from "sonner";
 import { Loader2, Receipt } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
@@ -30,28 +30,63 @@ const expenseSchema = z.object({
 });
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
-export function AddExpenseDialog({ group, currentUserId }: { group: any; currentUserId: string }) {
+export function AddExpenseDialog({
+  group,
+  currentUserId,
+  expenseToEdit,
+  editModeTrigger
+}: {
+  group: any;
+  currentUserId: string;
+  expenseToEdit?: any;
+  editModeTrigger?: React.ReactNode;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      description: "",
-      amount: "",
-      category: "food",
+      description: expenseToEdit?.description || "",
+      amount: expenseToEdit?.amount || "",
+      category: expenseToEdit?.category || "food",
       customCategory: "",
-      date: new Date().toISOString().split("T")[0],
-      paidBy: currentUserId,
+      date: expenseToEdit ? new Date(expenseToEdit.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      paidBy: expenseToEdit?.paidById || currentUserId,
       notes: "",
-      splitType: "equal",
-      splitWith: [currentUserId],
-      customAmounts: {},
+      splitType: expenseToEdit ? "unequal" : "equal",
+      splitWith: expenseToEdit ? expenseToEdit.splits.map((s: any) => s.userId) : [currentUserId],
+      customAmounts: expenseToEdit ? expenseToEdit.splits.reduce((acc: Record<string, string>, s: any) => {
+        acc[s.userId] = s.amountOwed;
+        return acc;
+      }, {}) : {},
       customPercentages: {},
-    }
+    },
   });
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = form;
+
+  // Reset form when expenseToEdit updates (e.g. after a successful edit)
+  useEffect(() => {
+    if (expenseToEdit && isOpen) {
+      reset({
+        description: expenseToEdit.description || "",
+        amount: expenseToEdit.amount || "",
+        category: expenseToEdit.category || "food",
+        customCategory: "",
+        date: new Date(expenseToEdit.createdAt).toISOString().split("T")[0],
+        paidBy: expenseToEdit.paidById,
+        notes: "",
+        splitType: "unequal",
+        splitWith: expenseToEdit.splits.map((s: any) => s.userId),
+        customAmounts: expenseToEdit.splits.reduce((acc: Record<string, string>, s: any) => {
+          acc[s.userId] = s.amountOwed;
+          return acc;
+        }, {}),
+        customPercentages: {},
+      });
+    }
+  }, [expenseToEdit, isOpen, reset]);
 
   const watchSplitType = watch("splitType");
   const watchSplitWith = watch("splitWith");
@@ -135,18 +170,28 @@ export function AddExpenseDialog({ group, currentUserId }: { group: any; current
     }
 
     startTransition(async () => {
-      const res = await createExpenseAction({
+      const payload = {
         groupId: group.id,
         description: values.description,
         amount: values.amount,
-        category: values.category === "other" ? (values.customCategory || "other") : values.category,
+        category: values.category === "other" && values.customCategory ? values.customCategory : values.category,
         paidBy: values.paidBy,
+        date: new Date(values.date).toISOString(),
         splits: calculatedSplits,
-        date: values.date,
-      });
+      };
+
+      let res;
+      if (expenseToEdit) {
+        res = await editExpenseAction({
+          expenseId: expenseToEdit.id,
+          ...payload
+        });
+      } else {
+        res = await createExpenseAction(payload);
+      }
 
       if (res.success) {
-        toast.success("Expense added successfully!");
+        toast.success(expenseToEdit ? "Expense updated successfully!" : "Expense added successfully!");
         setIsOpen(false);
         reset();
       } else {
@@ -158,31 +203,35 @@ export function AddExpenseDialog({ group, currentUserId }: { group: any; current
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       setIsOpen(open);
-      if (!open) reset(); // Reset form when closing without saving
+      if (!open && !expenseToEdit) form.reset();
     }}>
-      <DialogTrigger className="bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary/90 transition-colors flex items-center gap-2 shrink-0">
-        <Receipt className="h-4 w-4 hidden sm:block" /> Add Expense
-      </DialogTrigger>
+      {editModeTrigger ? (
+        <DialogTrigger render={editModeTrigger as React.ReactElement} />
+      ) : (
+        <DialogTrigger render={
+          <button className="bg-primary p-2 text-primary-foreground rounded-xl flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm shrink-0">
+            <span className="text-md sm:text-md font-light">+ Add Expense</span>
+          </button>
+        } />
+      )}
 
-      <DialogContent className="sm:max-w-xl h-full max-h-[90vh] flex flex-col rounded-3xl p-0 overflow-hidden">
-        <DialogHeader className="p-6 sm:p-8 pb-4 shrink-0 flex flex-row items-center justify-between">
-          <DialogTitle className="text-xl sm:text-2xl font-bold m-0 p-0">
-            Add Expense in {group.name}
-          </DialogTitle>
+      <DialogContent className="sm:max-w-md h-[90vh] sm:h-auto sm:max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-t-[2rem] sm:rounded-3xl gap-0 bg-background backdrop-blur-sm z-50 border border-border shadow-2xl">
+        <DialogHeader className="px-6 py-4 border-b border-border/50 shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <DialogTitle className="text-xl font-bold">{expenseToEdit ? "Edit Expense" : "Add Expense"}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6 sm:pb-8">
-          <form 
+          <form
             onSubmit={handleSubmit(onSubmit, (errors) => {
               console.error("Form validation errors:", errors);
               const firstError = Object.values(errors)[0];
               if (firstError?.message) {
                 toast.error(String(firstError.message));
               } else if (firstError && typeof firstError === 'object') {
-                 // for nested errors like customAmounts
-                 toast.error("Please fill in all required fields properly.");
+                // for nested errors like customAmounts
+                toast.error("Please fill in all required fields properly.");
               }
-            })} 
+            })}
             className="space-y-5"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -301,8 +350,8 @@ export function AddExpenseDialog({ group, currentUserId }: { group: any; current
                 )}
               </div>
 
-              <Tabs 
-                value={watchSplitType} 
+              <Tabs
+                value={watchSplitType || "equal"}
                 onValueChange={(v) => {
                   const newType = v as ExpenseFormValues["splitType"];
                   setValue("splitType", newType);
@@ -314,7 +363,7 @@ export function AddExpenseDialog({ group, currentUserId }: { group: any; current
                   } else if (newType === "percentage") {
                     setValue("customAmounts", {});
                   }
-                }} 
+                }}
                 className="w-full"
               >
                 <TabsList className="grid w-full grid-cols-3 mb-4 rounded-xl">

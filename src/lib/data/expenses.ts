@@ -1,5 +1,5 @@
 import { db } from "../db/db";
-import { expenses, expenseSplits, users } from "../db/schema";
+import { expenses, expenseSplits, expenseDisputes, users } from "../db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 
 export async function getGroupExpenses(groupId: string) {
@@ -37,11 +37,26 @@ export async function getGroupExpenses(groupId: string) {
     .innerJoin(users, eq(expenseSplits.userId, users.id))
     .where(inArray(expenseSplits.expenseId, expenseIds));
 
+  const disputes = await db
+    .select({
+      id: expenseDisputes.id,
+      expenseId: expenseDisputes.expenseId,
+      userId: expenseDisputes.userId,
+      reason: expenseDisputes.reason,
+      createdAt: expenseDisputes.createdAt,
+      firstName: users.firstName,
+      lastName: users.lastName,
+    })
+    .from(expenseDisputes)
+    .innerJoin(users, eq(expenseDisputes.userId, users.id))
+    .where(inArray(expenseDisputes.expenseId, expenseIds));
+
   // Combine them
   return expensesList.map((expense) => {
     return {
       ...expense,
       splits: splits.filter((s) => s.expenseId === expense.id),
+      disputes: disputes.filter((d) => d.expenseId === expense.id),
     };
   });
 }

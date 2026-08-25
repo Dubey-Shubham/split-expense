@@ -67,3 +67,17 @@ export const expenseSplits = pgTable("expense_splits", {
     .references(() => users.id, { onDelete: "cascade" }),
   amountOwed: numeric("amount_owed").notNull(),
 });
+
+export const expenseDisputes = pgTable("expense_disputes", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  expenseId: text("expense_id")
+    .notNull()
+    .references(() => expenses.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
