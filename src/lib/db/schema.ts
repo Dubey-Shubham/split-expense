@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id")
@@ -37,6 +37,7 @@ export const groupMembers = pgTable("group_members", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  lastReadAt: timestamp("last_read_at").defaultNow().notNull(),
 });
 
 export const expenses = pgTable("expenses", {
@@ -80,4 +81,21 @@ export const expenseDisputes = pgTable("expense_disputes", {
     .references(() => users.id, { onDelete: "cascade" }),
   reason: text("reason").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const groupMessages = pgTable("group_messages", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  groupId: text("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  isEdited: boolean("is_edited").default(false).notNull(),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

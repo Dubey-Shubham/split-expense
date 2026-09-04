@@ -7,11 +7,14 @@ import { ArrowLeft, Users, MessageCircle, Wallet, Calculator, HelpCircle, Chevro
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddMemberDialog } from "@/app/components/groups/AddMemberDialog";
+import { AddExpenseDialog } from "@/app/components/groups/AddExpenseDialog";
 import { CopyGroupLinkButton } from "@/app/components/groups/CopyGroupLinkButton";
 import { RemoveMemberButton } from "@/app/components/groups/RemoveMemberButton";
 import { getGroupExpenses } from "@/lib/data/expenses";
+import { getGroupMessages } from "@/lib/data/messages";
 import { GroupExpensesFeed } from "@/app/components/groups/GroupExpensesFeed";
 import { GroupBalances } from "@/app/components/groups/GroupBalances";
+import { GroupMessages } from "@/app/components/groups/GroupMessages";
 
 // We need an exact match for group params type in Next.js 16 dynamic routes
 interface GroupPageProps {
@@ -129,6 +132,7 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
   }
 
   const expenses = await getGroupExpenses(groupId);
+  const messages = await getGroupMessages(groupId, 50);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-6">
@@ -173,14 +177,7 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
                 <GroupExpensesFeed group={group} expenses={expenses} currentUserId={user.id} />
               </TabsContent>
               <TabsContent value="messages" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
-                <div className="relative w-full flex flex-col flex-1 min-h-0">
-                  <div className="flex items-center justify-between mb-4 shrink-0">
-                    <h3 className="text-lg font-bold text-foreground ml-2">Messages</h3>
-                  </div>
-                  <div className="w-full flex-1 min-h-0 bg-card border border-border rounded-3xl p-6 shadow-sm flex items-center justify-center text-center text-muted-foreground">
-                    Messages Sub-section (Coming Soon)
-                  </div>
-                </div>
+                <GroupMessages groupId={group.id} initialMessages={messages as any} currentUserId={user.id} />
               </TabsContent>
               <TabsContent value="balances" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
                 <GroupBalances group={group} expenses={expenses} currentUserId={user.id} />
