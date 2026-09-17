@@ -111,6 +111,7 @@ export async function getGroupDetails(groupId: string, currentUserId: string) {
       firstName: users.firstName,
       lastName: users.lastName,
       email: users.email,
+      upiId: users.upiId,
     })
     .from(groupMembers)
     .innerJoin(users, eq(groupMembers.userId, users.id))

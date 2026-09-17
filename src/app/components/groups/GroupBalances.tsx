@@ -2,55 +2,97 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { PayNowButton } from "./PayNowButton";
 
 export function GroupBalances({ group, expenses, currentUserId }: { group: any, expenses: any[], currentUserId: string }) {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [expandedPairId, setExpandedPairId] = useState<string | null>(null);
 
-  // Calculate balances for each member
-  const memberBalances = group.members.map((member: any) => {
-    let totalPaid = 0;
-    let totalShare = 0;
-    const involvedExpenses: any[] = [];
+  const togglePair = (e: React.MouseEvent, pairId: string) => {
+    e.stopPropagation();
+    setExpandedPairId(prev => prev === pairId ? null : pairId);
+  };
 
+  const getTransactionsBetween = (userA: string, userB: string) => {
+    const txs: any[] = [];
     expenses.forEach((expense: any) => {
-      const iPaid = expense.paidById === member.id;
-      const mySplit = expense.splits.find((s: any) => s.userId === member.id);
-      
-      let involved = false;
-      let lentAmount = 0;
-      let borrowedAmount = 0;
-
-      if (iPaid) {
-        const totalAmount = parseFloat(expense.amount);
-        const myOwed = mySplit ? parseFloat(mySplit.amountOwed) : 0;
-        lentAmount = totalAmount - myOwed;
-        totalPaid += totalAmount;
-        if (lentAmount > 0) involved = true;
-      }
-      
-      if (mySplit) {
-        totalShare += parseFloat(mySplit.amountOwed);
-        if (!iPaid) {
-          borrowedAmount = parseFloat(mySplit.amountOwed);
-          involved = true;
+      if (expense.paidById === userA) {
+        const split = expense.splits.find((s: any) => s.userId === userB);
+        if (split) {
+          const payerIsMe = userA === currentUserId;
+          const userAObj = group.members.find((m: any) => m.id === userA);
+          txs.push({
+            expense,
+            amount: parseFloat(split.amountOwed),
+            isLent: true, 
+            payerName: payerIsMe ? "You" : userAObj?.firstName || "Someone",
+          });
+        }
+      } else if (expense.paidById === userB) {
+        const split = expense.splits.find((s: any) => s.userId === userA);
+        if (split) {
+          const payerIsMe = userB === currentUserId;
+          const userBObj = group.members.find((m: any) => m.id === userB);
+          txs.push({
+            expense,
+            amount: parseFloat(split.amountOwed),
+            isLent: false, 
+            payerName: payerIsMe ? "You" : userBObj?.firstName || "Someone",
+          });
         }
       }
+    });
+    return txs.sort((a, b) => new Date(b.expense.createdAt).getTime() - new Date(a.expense.createdAt).getTime());
+  };
 
-      if (involved) {
-        involvedExpenses.push({
-          expense,
-          lentAmount,
-          borrowedAmount,
-        });
+  // 1. Calculate pairwise balances: balances[userA][userB] = how much userA owes userB
+  const pairwise: Record<string, Record<string, number>> = {};
+  
+  group.members.forEach((m: any) => {
+    pairwise[m.id] = {};
+    group.members.forEach((other: any) => {
+      pairwise[m.id][other.id] = 0;
+    });
+  });
+
+  expenses.forEach((expense: any) => {
+    const payerId = expense.paidById;
+    expense.splits.forEach((split: any) => {
+      const borrowerId = split.userId;
+      const amount = parseFloat(split.amountOwed);
+      
+      if (borrowerId !== payerId && pairwise[borrowerId] && pairwise[payerId]) {
+        pairwise[borrowerId][payerId] += amount;
+        pairwise[payerId][borrowerId] -= amount;
+      }
+    });
+  });
+
+  // 2. Aggregate pairwise debts into per-user breakdowns
+  const memberBalances = group.members.map((member: any) => {
+    let netBalance = 0;
+    const owes: { toUser: any, amount: number }[] = [];
+    const getsBack: { fromUser: any, amount: number }[] = [];
+
+    group.members.forEach((other: any) => {
+      if (other.id === member.id) return;
+      
+      const amountOwedToOther = pairwise[member.id][other.id];
+      
+      if (amountOwedToOther > 0.01) {
+        owes.push({ toUser: other, amount: amountOwedToOther });
+        netBalance -= amountOwedToOther;
+      } else if (amountOwedToOther < -0.01) {
+        getsBack.push({ fromUser: other, amount: Math.abs(amountOwedToOther) });
+        netBalance += Math.abs(amountOwedToOther);
       }
     });
 
-    const netBalance = totalPaid - totalShare;
-
     return {
       ...member,
-      netBalance,
-      involvedExpenses
+      netBalance, // Positive if they get back, negative if they owe
+      owes,
+      getsBack,
     };
   });
 
@@ -113,28 +155,114 @@ export function GroupBalances({ group, expenses, currentUserId }: { group: any, 
             {/* Expanded Details */}
             {isExpanded && (
               <div className="bg-muted/20 border-t border-border/50 p-5 px-6 sm:px-8 space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
-                <h5 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Transaction History</h5>
+                <h5 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Balance Breakdown</h5>
                 
-                {member.involvedExpenses.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center italic py-2">No active expenses for this user.</p>
+                {member.owes.length === 0 && member.getsBack.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center italic py-2">Settled up with everyone.</p>
                 ) : (
-                  <div className="space-y-3 divide-y divide-border/50">
-                    {member.involvedExpenses.map(({ expense, lentAmount, borrowedAmount }: any) => {
-                      const isLent = lentAmount > 0;
-                      return (
-                        <div key={expense.id} className="flex items-center justify-between pt-3 first:pt-0 text-sm">
-                          <div className="flex flex-col min-w-0 pr-4">
-                            <span className="font-semibold text-foreground truncate">{expense.description}</span>
-                            <span className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-                              {isLent ? (isMe ? 'You paid and lent' : `${member.firstName} paid and lent`) : (isMe ? 'You borrowed' : `${member.firstName} borrowed`)}
-                            </span>
-                          </div>
-                          <span className={`font-black whitespace-nowrap ${isLent ? 'text-emerald-500' : 'text-orange-500'}`}>
-                            {isLent ? '+' : '-'}₹{(isLent ? lentAmount : borrowedAmount).toFixed(2)}
-                          </span>
-                        </div>
-                      );
-                    })}
+                  <div className="space-y-4">
+                    {/* Owes */}
+                    {member.owes.length > 0 && (
+                      <div className="space-y-1">
+                        {member.owes.map((debt: any) => {
+                          const pairId = `${member.id}-owes-${debt.toUser.id}`;
+                          const isPairExpanded = expandedPairId === pairId;
+                          
+                          return (
+                            <div key={debt.toUser.id} className="space-y-1">
+                              <div 
+                                onClick={(e) => togglePair(e, pairId)}
+                                className="flex items-center justify-between text-sm cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-lg transition-colors"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="h-7 w-7 rounded-full bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                    {debt.toUser.firstName.charAt(0)}{debt.toUser.lastName.charAt(0)}
+                                  </div>
+                                  <span className="text-foreground">
+                                    {isMe ? 'You owe' : 'Owes'} <span className="font-semibold">{debt.toUser.id === currentUserId ? 'You' : debt.toUser.firstName}</span>
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-black text-orange-500">₹{debt.amount.toFixed(2)}</span>
+                                  {isMe && debt.toUser.upiId && (
+                                    <PayNowButton 
+                                      upiId={debt.toUser.upiId} 
+                                      name={`${debt.toUser.firstName} ${debt.toUser.lastName}`}
+                                      amount={debt.amount}
+                                    />
+                                  )}
+                                  {isPairExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground ml-1" /> : <ChevronDown className="h-4 w-4 text-muted-foreground ml-1" />}
+                                </div>
+                              </div>
+
+                              {isPairExpanded && (
+                                <div className="pl-12 pr-2 py-2 space-y-3 border-l-2 border-orange-500/20 ml-3 mt-1 mb-2 animate-in slide-in-from-top-1 fade-in duration-200">
+                                  {getTransactionsBetween(member.id, debt.toUser.id).map(tx => (
+                                    <div key={tx.expense.id} className="flex justify-between items-start text-xs">
+                                      <div className="flex flex-col pr-2 min-w-0">
+                                        <span className="font-medium text-foreground leading-tight truncate">{tx.expense.description}</span>
+                                        <span className="text-[10px] text-muted-foreground mt-0.5">{tx.payerName} paid</span>
+                                      </div>
+                                      <span className={`font-semibold whitespace-nowrap ${tx.isLent ? 'text-emerald-500' : 'text-orange-500'}`}>
+                                        {tx.isLent ? '+' : '-'}₹{tx.amount.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Gets Back */}
+                    {member.getsBack.length > 0 && (
+                      <div className="space-y-1">
+                        {member.getsBack.map((credit: any) => {
+                          const pairId = `${member.id}-gets-${credit.fromUser.id}`;
+                          const isPairExpanded = expandedPairId === pairId;
+
+                          return (
+                            <div key={credit.fromUser.id} className="space-y-1">
+                              <div 
+                                onClick={(e) => togglePair(e, pairId)}
+                                className="flex items-center justify-between text-sm cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-lg transition-colors"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="h-7 w-7 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                    {credit.fromUser.firstName.charAt(0)}{credit.fromUser.lastName.charAt(0)}
+                                  </div>
+                                  <span className="text-foreground">
+                                    {isMe ? 'You get back from' : 'Gets back from'} <span className="font-semibold">{credit.fromUser.id === currentUserId ? 'You' : credit.fromUser.firstName}</span>
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-black text-emerald-500">₹{credit.amount.toFixed(2)}</span>
+                                  {isPairExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                                </div>
+                              </div>
+
+                              {isPairExpanded && (
+                                <div className="pl-12 pr-2 py-2 space-y-3 border-l-2 border-emerald-500/20 ml-3 mt-1 mb-2 animate-in slide-in-from-top-1 fade-in duration-200">
+                                  {getTransactionsBetween(member.id, credit.fromUser.id).map(tx => (
+                                    <div key={tx.expense.id} className="flex justify-between items-start text-xs">
+                                      <div className="flex flex-col pr-2 min-w-0">
+                                        <span className="font-medium text-foreground leading-tight truncate">{tx.expense.description}</span>
+                                        <span className="text-[10px] text-muted-foreground mt-0.5">{tx.payerName} paid</span>
+                                      </div>
+                                      <span className={`font-semibold whitespace-nowrap ${tx.isLent ? 'text-emerald-500' : 'text-orange-500'}`}>
+                                        {tx.isLent ? '+' : '-'}₹{tx.amount.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -146,3 +274,4 @@ export function GroupBalances({ group, expenses, currentUserId }: { group: any, 
     </div>
   );
 }
+

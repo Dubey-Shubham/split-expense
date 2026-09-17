@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { db } from "@/lib/db/db";
-import { users } from "@/lib/db/schema";
+import { users, groupMembers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 
@@ -39,6 +39,16 @@ export async function updateProfileAction(data: {
     revalidatePath("/");
     // Revalidate the global cache tag for the user profile
     revalidateTag(`user-${userId}`, "hours");
+
+    // Also revalidate any groups the user is in, so UPI changes reflect instantly in group balances
+    const userMemberships = await db
+      .select({ groupId: groupMembers.groupId })
+      .from(groupMembers)
+      .where(eq(groupMembers.userId, userId));
+      
+    userMemberships.forEach((m) => {
+      revalidateTag(`group-details-${m.groupId}`, "hours");
+    });
 
     return { success: true };
   } catch (err: any) {
