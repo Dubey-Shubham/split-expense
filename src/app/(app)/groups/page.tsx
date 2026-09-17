@@ -130,6 +130,7 @@ async function GroupsGrid() {
       {groups.map((group) => {
         const balance = getGroupBalance(group.name);
         const isCreator = group.createdBy === userId;
+        const unreadTotal = (group.unreadExpensesCount || 0) + (group.unreadMessagesCount || 0);
 
         return (
           <Link
@@ -139,8 +140,15 @@ async function GroupsGrid() {
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
-                  {getCategoryIcon(group.avatar)}
+                <div className="relative">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
+                    {getCategoryIcon(group.avatar)}
+                  </div>
+                  {unreadTotal > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-card shadow-sm animate-in zoom-in">
+                      {unreadTotal > 99 ? '99+' : unreadTotal}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <h4 className="font-bold text-foreground group-hover/card:text-primary transition-colors pr-6">

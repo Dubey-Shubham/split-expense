@@ -1,0 +1,2 @@
+ALTER TABLE "group_messages" ADD COLUMN "replied_to_message_id" text;--> statement-breakpoint
+ALTER TABLE "group_messages" ADD CONSTRAINT "group_messages_replied_to_message_id_group_messages_id_fk" FOREIGN KEY ("replied_to_message_id") REFERENCES "public"."group_messages"("id") ON DELETE set null ON UPDATE no action;

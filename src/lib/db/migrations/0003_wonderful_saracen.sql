@@ -1,0 +1,2 @@
+ALTER TABLE "group_messages" ADD COLUMN "quoted_expense_id" text;--> statement-breakpoint
+ALTER TABLE "group_messages" ADD CONSTRAINT "group_messages_quoted_expense_id_expenses_id_fk" FOREIGN KEY ("quoted_expense_id") REFERENCES "public"."expenses"("id") ON DELETE set null ON UPDATE no action;

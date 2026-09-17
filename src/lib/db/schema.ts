@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, numeric, boolean, AnyPgColumn } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id")
@@ -38,6 +38,8 @@ export const groupMembers = pgTable("group_members", {
     .references(() => users.id, { onDelete: "cascade" }),
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
   lastReadAt: timestamp("last_read_at").defaultNow().notNull(),
+  lastReadExpensesAt: timestamp("last_read_expenses_at").defaultNow().notNull(),
+  lastReadMessagesAt: timestamp("last_read_messages_at").defaultNow().notNull(),
 });
 
 export const expenses = pgTable("expenses", {
@@ -96,6 +98,8 @@ export const groupMessages = pgTable("group_messages", {
   content: text("content").notNull(),
   isEdited: boolean("is_edited").default(false).notNull(),
   isDeleted: boolean("is_deleted").default(false).notNull(),
+  quotedExpenseId: text("quoted_expense_id").references(() => expenses.id, { onDelete: "set null" }),
+  repliedToMessageId: text("replied_to_message_id").references((): AnyPgColumn => groupMessages.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

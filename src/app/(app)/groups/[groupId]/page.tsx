@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AddMemberDialog } from "@/app/components/groups/AddMemberDialog";
 import { AddExpenseDialog } from "@/app/components/groups/AddExpenseDialog";
 import { CopyGroupLinkButton } from "@/app/components/groups/CopyGroupLinkButton";
+import { GroupTabs } from "@/app/components/groups/GroupTabs";
 import { RemoveMemberButton } from "@/app/components/groups/RemoveMemberButton";
 import { getGroupExpenses } from "@/lib/data/expenses";
 import { getGroupMessages } from "@/lib/data/messages";
@@ -156,34 +157,21 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
       ) : (
         <>
 
-          <Tabs defaultValue="settle" className="w-full flex flex-col flex-1 min-h-0">
-            <TabsList className="flex w-full rounded-2xl bg-card border border-border p-1 !h-auto gap-1 shadow-sm shrink-0">
-              <TabsTrigger value="settle" className="flex-1 rounded-xl py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary flex flex-col gap-1 h-auto">
-                <Wallet className="h-4 w-4" />
-                <span className="text-[10px] sm:text-xs font-medium">Settle</span>
-              </TabsTrigger>
-              <TabsTrigger value="messages" className="flex-1 rounded-xl py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary flex flex-col gap-1 h-auto">
-                <MessageCircle className="h-4 w-4" />
-                <span className="text-[10px] sm:text-xs font-medium">Messages</span>
-              </TabsTrigger>
-              <TabsTrigger value="balances" className="flex-1 rounded-xl py-2.5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary flex flex-col gap-1 h-auto">
-                <HelpCircle className="h-4 w-4" />
-                <span className="text-[10px] sm:text-xs font-medium">Balances</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="mt-4 flex flex-col flex-1 min-h-0">
-              <TabsContent value="settle" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
-                <GroupExpensesFeed group={group} expenses={expenses} currentUserId={user.id} />
-              </TabsContent>
-              <TabsContent value="messages" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
-                <GroupMessages groupId={group.id} initialMessages={messages as any} currentUserId={user.id} />
-              </TabsContent>
-              <TabsContent value="balances" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
-                <GroupBalances group={group} expenses={expenses} currentUserId={user.id} />
-              </TabsContent>
-            </div>
-          </Tabs>
+          <GroupTabs 
+            groupId={group.id} 
+            initialUnreadExpenses={group.unreadExpensesCount} 
+            initialUnreadMessages={group.unreadMessagesCount}
+          >
+            <TabsContent value="settle" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
+              <GroupExpensesFeed group={group} expenses={expenses} currentUserId={user.id} />
+            </TabsContent>
+            <TabsContent value="messages" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
+              <GroupMessages groupId={group.id} initialMessages={messages as any} currentUserId={user.id} expenses={expenses} />
+            </TabsContent>
+            <TabsContent value="balances" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
+              <GroupBalances group={group} expenses={expenses} currentUserId={user.id} />
+            </TabsContent>
+          </GroupTabs>
         </>
       )}
     </div>
