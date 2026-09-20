@@ -78,8 +78,7 @@ export default function SignupPage() {
 
       // Redirect to main landing/dashboard page after short delay
       setTimeout(() => {
-        router.push("/");
-        router.refresh();
+        window.location.href = "/";
       }, 1500);
     } catch (err) {
       console.error(err);

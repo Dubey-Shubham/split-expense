@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    cacheComponents: true,
-  },
+  cacheComponents: true,
+  allowedDevOrigins: ['192.168.1.104'],
   turbopack: {
     root: __dirname,
   },
