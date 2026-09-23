@@ -41,11 +41,11 @@ function GroupHeader({ group, currentUserId }: { group: any; currentUserId: stri
   };
 
   return (
-    <div className="bg-card border border-border rounded-3xl p-5 sm:p-6 shadow-sm flex items-center gap-4 sm:gap-6 relative overflow-hidden">
+    <div className="bg-card border border-border rounded-3xl p-4 sm:p-6 shadow-sm flex items-center gap-3 sm:gap-6 relative overflow-hidden">
       <div className="absolute top-[-50%] right-[-10%] w-[60%] h-[150%] rounded-full bg-primary/5 blur-[60px] pointer-events-none" />
 
       {/* Group Avatar */}
-      <div className="flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center rounded-2xl bg-muted text-3xl sm:text-4xl shadow-inner border border-border/50">
+      <div className="flex h-12 w-12 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl bg-muted text-2xl sm:text-3xl shadow-inner border border-border/50">
         {getAvatarIcon(group.avatar)}
       </div>
 
@@ -53,21 +53,15 @@ function GroupHeader({ group, currentUserId }: { group: any; currentUserId: stri
       <div className="flex-1 min-w-0">
         <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">{group.name}</h2>
         {group.description && (
-          <p className="text-sm text-muted-foreground mt-1 truncate">{group.description}</p>
+          <p className="text-sm text-muted-foreground mt-0.5 truncate">{group.description}</p>
         )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2 sm:gap-3 z-10 shrink-0">
-
-        <AddMemberDialog groupId={group.id} variant="icon" />
-
-        {/* Members Dialog Trigger */}
-        {group.members.length > 1 && (
+        
+        {/* Members Dialog Trigger (Now text under description) */}
+        {group.members.length > 0 && (
           <Dialog>
-            <DialogTrigger className="flex flex-row items-center justify-center gap-1 h-[52px] px-3 sm:h-14 sm:px-4 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0">
-              <span className="text-sm sm:text-base font-black leading-none">{group.members.length}</span>
-              <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-widerml-2">Members</span>
+            <DialogTrigger className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground outline-none transition-colors group/members">
+              <Users className="h-3.5 w-3.5 group-hover/members:text-primary transition-colors" />
+              <span>{group.members.length} {group.members.length === 1 ? "member" : "members"}</span>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md bg-background backdrop-blur-sm z-50 border border-border shadow-2xl rounded-3xl p-6">
               <DialogHeader>
@@ -111,6 +105,12 @@ function GroupHeader({ group, currentUserId }: { group: any; currentUserId: stri
             </DialogContent>
           </Dialog>
         )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2 sm:gap-3 z-10 shrink-0">
+        <AddMemberDialog groupId={group.id} variant="icon" />
+
       </div>
     </div>
   );
@@ -157,9 +157,9 @@ async function GroupContent({ params }: { params: Promise<{ groupId: string }> }
       ) : (
         <>
 
-          <GroupTabs 
-            groupId={group.id} 
-            initialUnreadExpenses={group.unreadExpensesCount} 
+          <GroupTabs
+            groupId={group.id}
+            initialUnreadExpenses={group.unreadExpensesCount}
             initialUnreadMessages={group.unreadMessagesCount}
           >
             <TabsContent value="settle" className="m-0 w-full outline-none flex flex-col flex-1 min-h-0 data-[state=inactive]:hidden">
@@ -198,7 +198,7 @@ function GroupSkeleton() {
 
 export default function GroupPage({ params }: GroupPageProps) {
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 flex flex-col overflow-hidden h-[calc(100dvh-16rem)] md:h-[calc(100dvh-10rem)]">
+    <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 flex flex-col overflow-hidden h-[calc(100dvh-12rem)] md:h-[calc(100dvh-8rem)]">
       {/* Static Header Nav */}
       <div className="flex items-center shrink-0 mb-6">
         <Link href="/groups" className="flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group">

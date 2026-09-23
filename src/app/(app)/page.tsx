@@ -3,13 +3,25 @@ import { ArrowRight, Users, Receipt, PieChart, MessageSquare, QrCode } from "luc
 import Link from "next/link";
 import { WelcomeCard } from "@/app/components/home/WelcomeCard";
 import { getCurrentUserAction } from "@/app/actions/auth";
+import { getUserStatsAction } from "@/app/actions/stats";
+import { StatsClientWidget } from "@/app/components/home/StatsClientWidget";
+
+function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4 animate-pulse">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="h-[90px] rounded-2xl bg-muted/60" />
+      ))}
+    </div>
+  );
+}
 
 function HomeSkeleton() {
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-10 py-6 px-2">
+    <div className="w-full max-w-6xl mx-auto space-y-6 md:space-y-10 py-4 md:py-6 px-2">
       <WelcomeCard />
       <QuickActionsSection />
-      <StatsSection />
+      <StatsSkeleton />
     </div>
   );
 }
@@ -46,6 +58,7 @@ function QuickActionsSection() {
           <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-blue-500" />
         </Link>
 
+        {/* Temporarily hidden - Backlog Feature
         <Link
           href="/budget"
           className="group flex items-center gap-5 rounded-3xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:border-emerald-500/40 hover:shadow-md hover:shadow-emerald-500/5"
@@ -61,38 +74,17 @@ function QuickActionsSection() {
           </div>
           <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-emerald-500" />
         </Link>
+        */}
       </div>
     </section>
   );
 }
 
-function StatsSection() {
-  return (
-    <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-      {[
-        { label: "Groups Joined", value: "—", color: "text-blue-500" },
-        { label: "This Month Spent", value: "—", color: "text-orange-500" },
-        { label: "You Are Owed", value: "—", color: "text-emerald-500" },
-        { label: "Settled This Week", value: "—", color: "text-purple-500" },
-      ].map((stat) => (
-        <div
-          key={stat.label}
-          className="flex flex-col gap-1.5 rounded-2xl border border-border bg-card p-4 shadow-sm"
-        >
-          <span className="text-xs font-medium text-muted-foreground">
-            {stat.label}
-          </span>
-          <span className={`text-2xl font-black ${stat.color}`}>
-            {stat.value}
-          </span>
-        </div>
-      ))}
-    </section>
-  );
-}
+// Old StatsSection removed, replaced by StatsClientWidget
 
 async function HomeContent() {
   const user = await getCurrentUserAction();
+  const stats = await getUserStatsAction();
 
   if (!user) {
     // Unauthenticated Landing Page view (Marketing & Features)
@@ -180,10 +172,10 @@ async function HomeContent() {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-10 py-6 px-2">
+    <div className="w-full max-w-6xl mx-auto space-y-6 md:space-y-10 py-4 md:py-6 px-2">
       <WelcomeCard />
       <QuickActionsSection />
-      <StatsSection />
+      {stats && <StatsClientWidget initialStats={stats} />}
     </div>
   );
 }

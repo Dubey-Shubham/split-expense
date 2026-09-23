@@ -78,10 +78,10 @@ export function CreateGroupModal() {
     <>
       <button
         onClick={() => setIsCreateOpen(true)}
-        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-4 py-2.5 rounded-2xl transition-all duration-300 active:scale-[0.98] shadow-md flex items-center gap-2 text-sm"
+        className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-4 py-2.5 rounded-2xl transition-all duration-300 active:scale-[0.98] shadow-md flex items-center justify-center gap-2 text-sm"
       >
-        <Plus className="h-4 w-4" />
-        <span>New Group</span>
+        <Plus className="h-4 w-4 shrink-0" />
+        <span className="whitespace-nowrap">New Group</span>
       </button>
 
       {isCreateOpen && (

@@ -7,7 +7,7 @@ import { Home, Users, PieChart, User } from "lucide-react";
 const NAV_ITEMS = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/groups", icon: Users, label: "Groups" },
-  { href: "/budget", icon: PieChart, label: "Budget" },
+  // { href: "/budget", icon: PieChart, label: "Budget" }, // Backlog feature
   { href: "/profile", icon: User, label: "Profile" },
 ];
 

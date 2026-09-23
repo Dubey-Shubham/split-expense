@@ -6,7 +6,7 @@ import { LogoutButton } from "./LogoutButton";
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
   { href: "/groups", label: "Groups" },
-  { href: "/budget", label: "Budget" },
+  // { href: "/budget", label: "Budget" }, // Backlog feature
 ];
 
 /**
