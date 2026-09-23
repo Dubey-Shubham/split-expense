@@ -75,8 +75,7 @@ export default function LoginPage() {
 
       // Redirect to main layout page
       setTimeout(() => {
-        router.push("/");
-        router.refresh();
+        window.location.href = "/";
       }, 1200);
     } catch (err) {
       console.error(err);
