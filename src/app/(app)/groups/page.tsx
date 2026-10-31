@@ -8,7 +8,7 @@ import { DeleteGroupButton } from "@/app/components/groups/DeleteGroupButton";
 import { getGroupsForUser } from "@/lib/data/groups";
 
 export const metadata = {
-  title: "Group Expenses | Splitwise Lite",
+  title: "Groups",
   description: "Track shared expenditures, trip bills, and settle balances with friends.",
 };
 
