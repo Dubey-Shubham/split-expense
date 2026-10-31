@@ -8,7 +8,8 @@ import { LogoutButton } from "@/app/components/layout/LogoutButton";
 import { Label } from "@/components/ui/label";
 
 export const metadata = {
-  title: "Profile | Split Expense",
+  title: "Profile",
+  description: "View and edit your profile details, contact info, and payment settings.",
 };
 
 function ProfileSkeleton() {

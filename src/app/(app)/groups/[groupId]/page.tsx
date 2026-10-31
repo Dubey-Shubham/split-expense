@@ -22,9 +22,32 @@ interface GroupPageProps {
   params: Promise<{ groupId: string }>;
 }
 
-export const metadata = {
-  title: "Group Details | Split Expense",
-};
+export async function generateMetadata({ params }: GroupPageProps) {
+  const { groupId } = await params;
+  const user = await getCurrentUserAction();
+  if (user) {
+    const group = await getGroupDetails(groupId, user.id);
+    if (group?.name) {
+      return {
+        title: group.name,
+        description: `Track shared expenditures, trip bills, and balances for ${group.name}.`,
+        openGraph: {
+          title: `${group.name} | Expense Tracker`,
+          description: `Track shared expenditures, trip bills, and balances for ${group.name}.`,
+        },
+      };
+    }
+  }
+
+  return {
+    title: "Group Details",
+    description: "Track shared expenditures, trip bills, and balances.",
+    openGraph: {
+      title: "Group Details | Expense Tracker",
+      description: "Track shared expenditures, trip bills, and balances.",
+    },
+  };
+}
 
 // --- Sub-components for better organization ---
 
